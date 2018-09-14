@@ -1,0 +1,16 @@
+*~
+*.gif
+*.jpg
+*.pdf
+*.svg
+*.csv
+*.gif
+*.swp
+*.png
+iter_*
+hpcbatch_*
+sim_*
+*lyxformat*
+graph_sim_*
+graph_iter_*
+x*
