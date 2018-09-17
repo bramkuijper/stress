@@ -67,15 +67,24 @@ double mu_influx = 0.0;
 // if development is absent, values for
 // switch rates are identical
 //
-// here alpha means switch from P to NP
-// and beta from NP to P
-double s_PN2P[2] = {0.0,0.0};
-double s_NP2P[2] = {0.0,0.0};
+// switch rate from P to NP
+double s_P_2_NP[2] = {0.0,0.0};
+// switch rate from NP to P
+double s_NP_2_P[2] = {0.0,0.0};
 
 // per generation 
 // switching probability from world 1 to 2
 double gamma12 = 0.0;
 double gamma21  = 0.0;
+
+// initial values for the evolving traits
+double init_feedback = 0.0;
+double init_stress_influx = 0.0;
+double init_influx = 0.0;
+
+// cue probabilities
+double cue_P = 0.0;
+double cue_NP = 0.0;
 
 // baseline survival rate
 double surv_baseline = 0;
@@ -113,7 +122,9 @@ typedef Individual Population[Npop];
 
 // specify populations living in predator (P)
 // or non-predator (NP) patches
-Population P, NP;
+// also make two stacks for the new populations after 
+// environmental change
+Population P, NP, Pnew, NPnew;
 
 // generate a unique filename for the output file
 string filename("sim_stress");
@@ -123,6 +134,7 @@ ofstream DataFile(filename_new.c_str());
 // initialize simulations from command line arguments
 void init_arguments(int argc, char *argv[])
 {
+
 }
 
 // mutation according to a continuum of alleles model
@@ -152,8 +164,6 @@ void write_parameters()
 		<< "seed;" << seed << ";"<< endl;
 }
 
-
-
 // initialize the simulation
 // by giving all the individuals 
 // genotypic values
@@ -174,256 +184,155 @@ void init_population()
     rng_r = gsl_rng_alloc(T);
     gsl_rng_set(rng_r, seed);
 
+    // set counters to 0
+    numP = 0;
+    numNP = 0;
+
 	// initialize the whole populatin
 	for (int i = 0; i < Npop; ++i)
 	{
-        // randomly allocate over P and NP
-        if (gsl_rng_uniform(rng_r) < 0.5)
-        {
-            P[
+        Individual newInd;
 
-        Pop[i].phen = intercept;
-
-        for (int j = 0; j < n_alleles_g; ++j)
+        // set alleles
+        for (int allele_i = 0; allele_i < 2; ++allele_i)
         {
-            Pop[i].g[j] = intercept == 0 ? 0 : intercept/n_alleles_g;
+            newInd.feedback[allele_i] = init_feedback;
+            newInd.stress_influx[allele_i] = init_stress_influx;
+            newInd.influx[allele_i] = init_influx;
         }
 
-        for (int j = 0; j < n_alleles_b; ++j)
-        {
-            Pop[i].b[j] = 0;
-        }
+        // initialize current hormone level and damage as follows:
+        newInd.hormone = 0.0;
+        newInd.damage = 0.0;
 
-        for (int j = 0; j < n_alleles_m; ++j)
-        {
-            Pop[i].m_m[j] = 0.0;
-            Pop[i].m_e[j] = 0.0;
-            Pop[i].m_g[j] = 0.0;
-            Pop[i].m_m_b[j] = 0.0;
-            Pop[i].m_e_b[j] = 0.0;
-            Pop[i].m_g_b[j] = 0.0;
-        }
+        // put individuals in environment P or NP accordingt to their
+        // overall frequency in the first world. This does not really matter
+        // too much, as I expect frequencies of individuals in either
+        // environment to rapidly attain their ecological equilibria
+        newInd.envt_is_P = gsl_rng_uniform(rng_r) < s_P_2_NP[0] / 
+            (s_NP_2_P[0] + s_P_2_NP[0]);
 
-        if (ampl * sin(rate * i) > max_sin)
+        if (newInd.envt_is_P)
         {
-            max_sin = ampl * sin(rate * i);
-        } 
-	}
-}
+            P[numP++] = newInd;
+        }
+        else
+        {
+            NP[numNP++] = newInd;
+        }
+    } 
+} // end init_population
 
 // create an offspring
-void create_offspring(int mother, int father, Individual &kid)
+void create_offspring(
+        Individual &mother, 
+        Individual &father, 
+        Individual &kid)
 {
-    double sum_g = 0; // sum over all the breeding values of the offspring coding for the actual phenotype
-    double sum_b = 0; // sum over all the breeding values of the offspring coding for the norm of reaction
-    double sum_m_m = 0; // sum over all the breeding values of the offspring coding for the maternal effect
-    double sum_m_g = 0; // sum over all the breeding values of the offspring coding for the maternal effect
-    double sum_m_e = 0; // sum over all the breeding values of the offspring coding for the maternal effect
-
-    double sum_m_m_b = 0; 
-    double sum_m_g_b = 0; 
-    double sum_m_e_b = 0; 
-    
-    // we assume all loci are unlinked 
-    for (int i = 0; i < n_alleles_g;++i)
+    for (int allele_i = 0; allele_i < 2; ++allele_i)
     {
-        kid.g[i] = i % 2 == 0 ? 
-            Survivors[mother].g[i + gsl_rng_uniform_int(rng_r, 2)] 
-            : 
-            Survivors[father].g[i - 1 + gsl_rng_uniform_int(rng_r, 2)];
+        kid.feedback[allele_i] = 
+            allele_i < 1 ? 
+            mother.feedback[gsl_rng_uniform_int(rng_r,2)] // mother inherits 
+            :
+            father.feedback[gsl_rng_uniform_int(rng_r,2)]; // father inherits
 
-        mutate(kid.g[i], mu_g, sdmu);
-        sum_g += kid.g[i];
-    }
+        mutate(kid.feedback[allele_i],mu_feedback, sdmu);
 
-    for (int i = 0; i < n_alleles_b; ++i)
-    {
-        kid.b[i] = i % 2 == 0 ? 
-            Survivors[mother].b[i + gsl_rng_uniform_int(rng_r, 2)] 
-            : 
-            Survivors[father].b[i - 1 + gsl_rng_uniform_int(rng_r, 2)];
+        kid.stress_influx[allele_i] = 
+            allele_i < 1 ? 
+            mother.stress_influx[gsl_rng_uniform_int(rng_r,2)] 
+            :
+            father.stress_influx[gsl_rng_uniform_int(rng_r,2)];
 
-        mutate(kid.b[i], mu_b, sdmu);
+        mutate(kid.stress_influx[allele_i],mu_stress_influx, sdmu);
 
-        sum_b += kid.b[i];
-    }
+        kid.influx[allele_i] = 
+            allele_i < 1 ? 
+            mother.influx[gsl_rng_uniform_int(rng_r,2)] 
+            :
+            father.influx[gsl_rng_uniform_int(rng_r,2)];
 
-    for (int i = 0; i < n_alleles_m; ++i)
-    {
-        kid.m_m[i] = i % 2 == 0 ? 
-            Survivors[mother].m_m[i + gsl_rng_uniform_int(rng_r, 2)] 
-            : 
-            Survivors[father].m_m[i - 1 + gsl_rng_uniform_int(rng_r, 2)];
+        mutate(kid.influx[allele_i],mu_influx, sdmu);
+    } // inheritance done
 
-        mutate(kid.m_m[i], mu_m_m, sdmu);
-        sum_m_m += kid.m_m[i];
-        
-        kid.m_e[i] = i % 2 == 0 ? 
-            Survivors[mother].m_e[i + gsl_rng_uniform_int(rng_r, 2)] 
-            : 
-            Survivors[father].m_e[i - 1 + gsl_rng_uniform_int(rng_r, 2)];
-
-
-        mutate(kid.m_e[i], mu_m_e, sdmu);
-        sum_m_e += kid.m_e[i];
-        
-        kid.m_g[i] = i % 2 == 0 ? 
-            Survivors[mother].m_g[i + gsl_rng_uniform_int(rng_r, 2)] 
-            : 
-            Survivors[father].m_g[i - 1 + gsl_rng_uniform_int(rng_r, 2)];
-
-        mutate(kid.m_g[i], mu_m_g, sdmu);
-        sum_m_g += kid.m_g[i];
-
-        // interaction coefficients
-        kid.m_m_b[i] = i % 2 == 0 ? 
-            Survivors[mother].m_m_b[i + gsl_rng_uniform_int(rng_r, 2)] 
-            : 
-            Survivors[father].m_m_b[i - 1 + gsl_rng_uniform_int(rng_r, 2)];
-
-        mutate(kid.m_m_b[i], mu_m_m_b, sdmu);
-        sum_m_m_b += kid.m_m_b[i];
-
-
-        
-        kid.m_e_b[i] = i % 2 == 0 ? 
-            Survivors[mother].m_e_b[i + gsl_rng_uniform_int(rng_r, 2)] 
-            : 
-            Survivors[father].m_e_b[i - 1 + gsl_rng_uniform_int(rng_r, 2)];
-
-
-        mutate(kid.m_e_b[i], mu_m_e_b, sdmu);
-        sum_m_e_b += kid.m_e_b[i];
-       
-
-
-        kid.m_g_b[i] = i % 2 == 0 ? 
-            Survivors[mother].m_g_b[i + gsl_rng_uniform_int(rng_r, 2)] 
-            : 
-            Survivors[father].m_g_b[i - 1 + gsl_rng_uniform_int(rng_r, 2)];
-
-        mutate(kid.m_g_b[i], mu_m_g_b, sdmu);
-        sum_m_g_b += kid.m_g_b[i];
-    }
-
-    kid.phen_m_m = sum_m_m;
-    kid.phen_m_g = sum_m_g;
-    kid.phen_m_e = sum_m_e;
-
-    kid.phen_m_m_b = sum_m_m_b;
-    kid.phen_m_g_b = sum_m_g_b;
-    kid.phen_m_e_b = sum_m_e_b;
-
-    kid.phen_g = sum_g;
-    kid.phen_b = sum_b;
-
-    // complete maternal control
-    kid.phen = 
-        kid.phen_g // elevation
-        + gsl_ran_gaussian(rng_r,sigma_e)  // developmental noise
-        + kid.phen_b * epsilon_sens  // plasticity
-        + kid.phen_m_m * Survivors[mother].phen // maternal phenotypic effect
-        + kid.phen_m_e * Survivors[mother].envt // maternal phenotypic effect
-        + kid.phen_m_g * Survivors[mother].phen_g // maternal genetic effect
-        + kid.phen_m_m_b * Survivors[mother].phen * epsilon_sens 
-        + kid.phen_m_e_b * Survivors[mother].envt * epsilon_sens 
-        + kid.phen_m_g_b * Survivors[mother].phen_g * epsilon_sens; 
-
-    kid.envt = epsilon_sens;
-
-    assert(isnan(kid.phen) == 0);
+    // set hormone level and damage to their baseline values
+    kid.hormone = 0.0;
+    kid.damage = 0.0;
 }
 
-
 // Survival of juveniles to reproductive adults
-void survive()
+void survive_reproduce()
 {
-    double W;
+    // counters for individuals that move to a different
+    // patch due to environmental change, with switch rates
+    // s_P_2_NP and s_NP_2_P
+    int Pnew = 0;
+    int NPnew = 0;
 
-    double theta = A + B * epsilon;
-
-    if (!envt_is_changed)
+    // survival in the P population
+    for (int ind_i = 0; ind_i < numP; ++ind_i)
     {
-        if (generation > t_change 
-                && 
-                ampl * sin(rate * generation) > max_sin - 0.1
-           )
-        {
-            rate = rateptb;
-            intercept = intptb;
-            ampl = amplptb;
+        // standard influx and outflux in hormone level
+        // z(t+1) = influx + (1 - feedback) * z(t)
+        P[ind_i].hormone += 
+            0.5 * (P[ind_i].influx[0] + P[ind_i].influx[1])
+             + (1.0 - 0.5 * (P[ind_i].feedback[0] + P[ind_i].feedback[1]))
+             * P[ind_i].hormone;
 
-            envt_is_changed = true;
+        // individual gets predator cue 
+        if (gsl_rng_uniform(rng_r) < cue_P)
+        {
+            // gets cue, spike the hormone level
+            P[ind_i].hormone += 
+                0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
+        }
+
+        // OK, did not survive dependent on the level of stress
+        if (gsl_rng_uniform(rng_r) > survival(true, P[ind_i].hormone))
+        {
+            // delete individual from stack
+            P[ind_i] = P[--numP];
+            --ind_i;
+        }
+        else // Individual survived. Check for potential for envt'al change
+        {
+            // individual switches to a different environment
+            if (gsl_rng_uniform(rng_r)  < s_P_2_NP[0])
+            {
+
+            }
         }
     }
 
-
-    NSurv = 0;
-
-    for (int i = 0; i < Npop; ++i)
+    // survival in the NP population
+    for (int ind_i = 0; ind_i < numNP; ++ind_i)
     {
-        W = wmin + (1.0 -  wmin) * exp(-.5 * (
-                                            pow((Pop[i].phen - theta),2.0)/omega2 
-                                            + pow(Pop[i].phen_b,2.0)/omega_b_2
-                                            + pow(Pop[i].phen_m_m,2.0)/omega_m_m_2
-                                            + pow(Pop[i].phen_m_g,2.0)/omega_m_g_2
-                                            + pow(Pop[i].phen_m_e,2.0)/omega_m_e_2
-                                            + pow(Pop[i].phen_m_m_b,2.0)/omega_m_m_2
-                                            + pow(Pop[i].phen_m_g_b,2.0)/omega_m_g_2
-                                            + pow(Pop[i].phen_m_e_b,2.0)/omega_m_e_2
-                                        )
-                                    );
+        // standard influx and outflux in hormone level
+        // z(t+1) = influx + (1 - feedback) * z(t)
+        NP[ind_i].hormone += 
+            0.5 * (NP[ind_i].influx[0] + NP[ind_i].influx[1])
+             + (1.0 - 0.5 * (NP[ind_i].feedback[0] + NP[ind_i].feedback[1]))
+             * NP[ind_i].hormone;
 
-
-        assert(isnan(W) == 0);
-
-        // let individual survive or not
-        if (gsl_rng_uniform(rng_r) < W)
+        // individual gets predator cue 
+        if (gsl_rng_uniform(rng_r) < cue_NP)
         {
-            Survivors[NSurv++] = Pop[i];
+            // gets cue, spike the hormone level
+            NP[ind_i].hormone += 
+                0.5 * (NP[ind_i].stress_influx[0] + NP[ind_i].stress_influx[1]);
+        }
+
+        // OK, did not survive dependent on the level of stress
+        if (gsl_rng_uniform(rng_r) > survival(false, NP[ind_i].hormone))
+        {
+            // delete individual from stack
+            NP[ind_i] = NP[--numNP];
+            --ind_i;
         }
     }
 
-    if (NSurv == 0)
-    {
-        write_parameters();
-        exit(1);
-    }
-
-    // update the environment for the next generation
-    // as an autocorrelated gaussian random variable
-    ksi = rho_t*ksi + gsl_ran_gaussian(rng_r, sqrt(1.0-rho_t*rho_t)*sigma_ksi);
-
-    epsilon = intercept + ampl * sin(rate * (generation+1)) + ksi;
-
-    // in the likely case there is a developmental timelag, tau,
-    // update the environment for a number of 'sub' timesteps
-    // to achieve a 'sensed' (rather than real) value of epsilon
-    if (tau > 0)
-    {
-        int timesteps = rint(1.0 / tau);
-
-        for (int time_i = 0; time_i < timesteps; ++time_i)
-        {
-            ksi = rho_t*ksi + gsl_ran_gaussian(rng_r, sqrt(1.0-rho_t*rho_t)*sigma_ksi);
-        }
-    }
-
-    // update the value of the sensed environment
-    epsilon_sens = intercept + ampl * sin(rate * (generation-tau+1)) + ksi;
-
-    // finally, let the survivors produce N offspring 
-    for (int i = 0; i < Npop; ++i)
-    {
-        Individual Kid;
-
-        create_offspring(
-                gsl_rng_uniform_int(rng_r,NSurv), 
-                gsl_rng_uniform_int(rng_r,NSurv), 
-                Kid);
-
-        Pop[i] = Kid;
-    }
+    // now switch territories
 }
 
 
