@@ -261,14 +261,33 @@ void create_offspring(
     kid.damage = 0.0;
 }
 
+// calculate survival probability
+// dependent on 
+// - whether or not individual is in environment P
+// - its level of damage
+// - its current hormone level
+double survival(bool const is_in_envt_P, 
+        double const damage,
+        double const hormone_level)
+{
+    double p_survive = s0 + (1.0 - s0) * (1.0 - pow(damage/dmax, ad));
+
+    if (is_in_envt_P)
+    {
+        p_survive += (1 - s0) * pow(hormone_level/zmax, aP);
+    }
+
+    return(p_survive);
+}
+
 // Survival of juveniles to reproductive adults
 void survive_reproduce()
 {
     // counters for individuals that move to a different
     // patch due to environmental change, with switch rates
     // s_P_2_NP and s_NP_2_P
-    int Pnew = 0;
-    int NPnew = 0;
+    int numPnew = 0;
+    int numNPnew = 0;
 
     // survival in the P population
     for (int ind_i = 0; ind_i < numP; ++ind_i)
@@ -287,9 +306,15 @@ void survive_reproduce()
             P[ind_i].hormone += 
                 0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
         }
+       
+        // update damage levels
+        P[ind_i].damage = (1.0 - r) * P[ind_i].damage + u * P[ind_i].hormone;
 
-        // OK, did not survive dependent on the level of stress
-        if (gsl_rng_uniform(rng_r) > survival(true, P[ind_i].hormone))
+        // OK, did not survive dependent on the level of stress & damage
+        if (gsl_rng_uniform(rng_r) > 
+                survival(true, 
+                    P[ind_i].damage,
+                    P[ind_i].hormone))
         {
             // delete individual from stack
             P[ind_i] = P[--numP];
@@ -300,7 +325,15 @@ void survive_reproduce()
             // individual switches to a different environment
             if (gsl_rng_uniform(rng_r)  < s_P_2_NP[0])
             {
-
+                // copy individual to NPnew stack which is a 
+                // placeholder for all individuals who go to NP
+                //
+                // we cannot directly transfer individuals to the NP
+                // stack itself, as the NP stack still needs to undergo
+                // survival selection.
+                NPnew[numNPnew++] = P[ind_i];
+                P[ind_i] = P[--numP];
+                --ind_i;
             }
         }
     }
@@ -323,8 +356,13 @@ void survive_reproduce()
                 0.5 * (NP[ind_i].stress_influx[0] + NP[ind_i].stress_influx[1]);
         }
 
+        // update damage levels
+        NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
+
         // OK, did not survive dependent on the level of stress
-        if (gsl_rng_uniform(rng_r) > survival(false, NP[ind_i].hormone))
+        if (gsl_rng_uniform(rng_r) > survival(false, 
+                    NP[ind_i].damage,
+                    NP[ind_i].hormone))
         {
             // delete individual from stack
             NP[ind_i] = NP[--numNP];
