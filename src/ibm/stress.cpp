@@ -228,7 +228,7 @@ void init_population()
     // so that two concurrent simulations still have
     // different seeds)
     // to initialize the random seed
-	seed = get_nanoseconds();
+	seed =704846942;//  get_nanoseconds();
     
     // set up the random number generators
     // (from the gnu gsl library)
@@ -284,6 +284,7 @@ void create_offspring(
         Individual &father, 
         Individual &kid)
 {
+    // inherit the different gene loci
     for (int allele_i = 0; allele_i < 2; ++allele_i)
     {
         kid.feedback[allele_i] = 
@@ -321,21 +322,25 @@ void create_offspring(
 // - whether or not individual is in environment P
 // - its level of damage
 // - its current hormone level
-double survival(bool const is_in_envt_P, 
+double survival(
+        bool const is_in_envt_P, 
         double const damage,
         double const hormone_level)
 {
+    assert(damage >= 0);
+    assert(damage <= dmax);
     double p_survive = s0 + (1.0 - s0) * (1.0 - pow(damage/dmax, ad));
 
+    // survive dependent on predator
     if (is_in_envt_P)
     {
-        p_survive += (1 - s0) * pow(hormone_level/zmax, aP);
+        p_survive *= pow(hormone_level/zmax, aP);
     }
 
     return(p_survive);
 }
 
-// Survival of juveniles to reproductive adults
+// survival of individuals
 void survive()
 {
     // counters for individuals that move to a different
@@ -360,9 +365,31 @@ void survive()
             P[ind_i].hormone += 
                 0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
         }
+
+        // set boundaries to hormone level
+        if (P[ind_i].hormone > zmax)
+        {
+            P[ind_i].hormone = 
+                P[ind_i].hormone > zmax ? 
+                zmax 
+                : 
+                P[ind_i].hormone < 0.0 ? 
+                    0.0 
+                    : 
+                    P[ind_i].hormone;
+        }
        
         // update damage levels
         P[ind_i].damage = (1.0 - r) * P[ind_i].damage + u * P[ind_i].hormone;
+
+        // set boundaries to damage level
+        assert(P[ind_i].damage >= 0);
+
+        if (P[ind_i].damage > dmax)
+        {
+            P[ind_i].damage = dmax;
+        }
+
 
         // OK, did not survive dependent on the level of stress & damage
         if (gsl_rng_uniform(rng_r) > 
@@ -419,9 +446,29 @@ void survive()
                 0.5 * (NP[ind_i].stress_influx[0] + NP[ind_i].stress_influx[1]);
         }
 
+        // set boundaries to hormone level
+        if (NP[ind_i].hormone > zmax)
+        {
+            NP[ind_i].hormone = 
+                NP[ind_i].hormone > zmax ? 
+                zmax 
+                : 
+                NP[ind_i].hormone < 0.0 ? 
+                    0.0 
+                    : 
+                    NP[ind_i].hormone;
+        }
+
         // update damage levels
         NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
 
+        // set boundaries to damage level
+        assert(NP[ind_i].damage >= 0);
+
+        if (NP[ind_i].damage > dmax)
+        {
+            P[ind_i].damage = dmax;
+        }
         // OK, did not survive dependent on the level of stress
         if (gsl_rng_uniform(rng_r) > survival(false, 
                     NP[ind_i].damage,
@@ -669,8 +716,10 @@ void write_data_headers()
 int main(int argc, char ** argv)
 {
 	init_arguments(argc, argv);
-	write_data_headers();
 	init_population();
+
+	write_parameters();
+	write_data_headers();
 
 	for (generation = 0; generation <= NumGen; ++generation)
 	{
@@ -685,5 +734,4 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	write_parameters();
 }

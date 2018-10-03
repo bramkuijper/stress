@@ -117,7 +117,7 @@ So far, there is little formal theory that allows us to make sense of variation
 \end_layout
 
 \begin_layout Subsection
-A general model of the stress response
+How strongly is a stress response tied to its ecological context?
 \end_layout
 
 \begin_layout Standard
@@ -137,6 +137,18 @@ Theoretical literature scan
 
 \begin_layout Standard
 It is helpful to consider 
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset bibtex
+LatexCommand bibtex
+btprint "btPrintCited"
+bibfiles "/home/bram/Projects/databases/transgenerational"
+options "bram"
+
+\end_inset
+
+
 \end_layout
 
 \end_body
