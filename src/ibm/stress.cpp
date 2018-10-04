@@ -37,13 +37,13 @@ gsl_rng *rng_r; // gnu scientific rng
 
 
 // number of generations
-const long int NumGen = 50000;
+const long int NumGen = 10000000;
 
 // population size
 const int Npop = 5000; 
 
 // number of generations to skip when outputting data
-const long int skip = 10;
+const long int skip = 1000;
 
 // track population sizes in each of the environments
 int numP = 0;
@@ -169,20 +169,48 @@ void init_arguments(int argc, char *argv[])
 }
 
 // mutation according to a continuum of alleles model
-void mutate(double &G, double mu, double sdmu)
+void mutate(
+        double &G, 
+        double const mu, 
+        double const sdmu)
 {
     G += gsl_rng_uniform(rng_r) < mu ? gsl_ran_gaussian(rng_r, sdmu) : 0;
 }
 
-// mutation but with a lower bound of 0 in the resulting trait
-void mutate0(double &G, double mu, double sdmu)
+// mutation but with a lower bound
+void mutate_bound_lower(
+        double &G, 
+        double const mu, 
+        double const sdmu, 
+        double const bound_lower)
 {
     G += gsl_rng_uniform(rng_r) < mu ? gsl_ran_gaussian(rng_r, sdmu) : 0;
 
     // set the bound
-    if (G < 0)
+    if (G < bound_lower)
     {
-        G = 0;
+        G = bound_lower;
+    }
+}
+
+// mutation but within lower and upper bounds
+void mutate_bound(
+        double &G, 
+        double const mu, 
+        double const sdmu, 
+        double const bound_lower,
+        double const bound_upper)
+{
+    G += gsl_rng_uniform(rng_r) < mu ? gsl_ran_gaussian(rng_r, sdmu) : 0;
+
+    // set the bound
+    if (G < bound_lower)
+    {
+        G = bound_lower;
+    }
+    else if (G > bound_upper)
+    {
+        G = bound_upper;
     }
 }
 
@@ -228,7 +256,7 @@ void init_population()
     // so that two concurrent simulations still have
     // different seeds)
     // to initialize the random seed
-	seed =704846942;//  get_nanoseconds();
+	seed = get_nanoseconds();
     
     // set up the random number generators
     // (from the gnu gsl library)
@@ -293,7 +321,12 @@ void create_offspring(
             :
             father.feedback[gsl_rng_uniform_int(rng_r,2)]; // father inherits
 
-        mutate(kid.feedback[allele_i], mu_feedback, sdmu);
+        mutate_bound(
+                kid.feedback[allele_i],
+                mu_feedback,
+                sdmu,
+                0.0,
+                1.0);
 
         kid.stress_influx[allele_i] = 
             allele_i < 1 ? 
@@ -301,7 +334,12 @@ void create_offspring(
             :
             father.stress_influx[gsl_rng_uniform_int(rng_r,2)];
 
-        mutate(kid.stress_influx[allele_i],mu_stress_influx, sdmu);
+        mutate_bound_lower(
+                kid.stress_influx[allele_i],
+                mu_stress_influx, 
+                sdmu,
+                0.0
+                );
 
         kid.influx[allele_i] = 
             allele_i < 1 ? 
@@ -309,7 +347,11 @@ void create_offspring(
             :
             father.influx[gsl_rng_uniform_int(rng_r,2)];
 
-        mutate(kid.influx[allele_i],mu_influx, sdmu);
+        mutate_bound_lower(
+                kid.influx[allele_i],
+                mu_influx, 
+                sdmu,
+                0.0);
     } // inheritance done
 
     // set hormone level and damage to their baseline values
@@ -353,7 +395,7 @@ void survive()
     {
         // standard influx and outflux in hormone level
         // z(t+1) = influx + (1 - feedback) * z(t)
-        P[ind_i].hormone += 
+        P[ind_i].hormone = 
             0.5 * (P[ind_i].influx[0] + P[ind_i].influx[1])
              + (1.0 - 0.5 * (P[ind_i].feedback[0] + P[ind_i].feedback[1]))
              * P[ind_i].hormone;
@@ -433,7 +475,7 @@ void survive()
     {
         // standard influx and outflux in hormone level
         // z(t+1) = influx + (1 - feedback) * z(t)
-        NP[ind_i].hormone += 
+        NP[ind_i].hormone = 
             0.5 * (NP[ind_i].influx[0] + NP[ind_i].influx[1])
              + (1.0 - 0.5 * (NP[ind_i].feedback[0] + NP[ind_i].feedback[1]))
              * NP[ind_i].hormone;
@@ -467,10 +509,12 @@ void survive()
 
         if (NP[ind_i].damage > dmax)
         {
-            P[ind_i].damage = dmax;
+            NP[ind_i].damage = dmax;
         }
+
         // OK, did not survive dependent on the level of stress
-        if (gsl_rng_uniform(rng_r) > survival(false, 
+        if (gsl_rng_uniform(rng_r) > 
+                survival(false, 
                     NP[ind_i].damage,
                     NP[ind_i].hormone))
         {
@@ -718,20 +762,26 @@ int main(int argc, char ** argv)
 	init_arguments(argc, argv);
 	init_population();
 
-	write_parameters();
+    // write headers to the datafile
 	write_data_headers();
 
+    // the main part of the code
 	for (generation = 0; generation <= NumGen; ++generation)
 	{
-        do_stats = generation % skip == 0;
 
 		survive();
-		reproduce();
 
+		reproduce();
+        
+        do_stats = generation % skip == 0;
+
+        // print statistics every nth generation
         if (do_stats)
 		{
 			write_data();
 		}
 	}
 
+    // finally write some params
+	write_parameters();
 }
