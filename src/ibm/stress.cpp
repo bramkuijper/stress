@@ -37,7 +37,7 @@ gsl_rng *rng_r; // gnu scientific rng
 
 
 // number of generations
-const long int NumGen = 10000000;
+const long int NumGen = 5000000;
 
 // population size
 const int Npop = 5000; 

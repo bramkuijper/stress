@@ -2,23 +2,23 @@
 import os, re, sys, math
 from numpy import *
 
-mu_feedback = [0, 0.01];
-mu_stress_influx = [0, 0.01];
-mu_influx = [0, 0.01];
-sdmu = [ 0.01 ];
+mu_feedback = [0, 0.02]
+mu_stress_influx = [0, 0.02]
+mu_influx = [0, 0.02]
+sdmu = [ 0.02]
 
 # switch rate from P to NP
-s_P2NP = [[ 0.1 ,0.5]]
-s_NP2P = [[ 0.01, 0.25 ]]
+s_P2NP = [[ 0.5,0.5]]
+s_NP2P = [[ 0.1,0.01]]
 
-s_12 = [[ 0.1,0.1] ]
+s_12 = [[ 0.1,0.1]]
 
 cue_P = [ 0.8 ]
 cue_NP = [ 0.08 ]
 
 s0 = [ 0.5 ]
-ad = [ 0.5, 1.0, 2.0 ]
-aP = [ 0.5, 1.0, 2.0 ]
+ad = [ 0.5 ]
+aP = [ 0.5 ]
 
 dmax = [ 100 ]
 zmax = [ 100 ]
@@ -31,9 +31,9 @@ nrep = 3
 
 ctr = 0
 
-init_feedback = 0.0
-init_stress_influx = 0.0
-init_influx = 0.0
+init_feedback = 1.0
+init_stress_influx = 10.0
+init_influx = 2.0
 
 exe = "./xstress"
 
@@ -68,18 +68,18 @@ for rep_i in range(0,nrep):
                                                                             + str(s_P2NP_i[1]) + " " 
                                                                             + str(s_NP2P_i[0]) + " " 
                                                                             + str(s_NP2P_i[1]) + " " 
-                                                                            + str(s_12_i[0]) + " " 
-                                                                            + str(s_12_i[1]) + " " 
-                                                                            + str(init_feedback) + " " 
-                                                                            + str(init_stress_influx) + " " 
-                                                                            + str(init_influx) + " " 
-                                                                            + str(cue_P_i) + " " 
-                                                                            + str(cue_NP_i) + " " 
-                                                                            + str(s0_i) + " " 
-                                                                            + str(ad_i) + " " 
-                                                                            + str(aP_i) + " " 
-                                                                            + str(dmax_i) + " " 
-                                                                            + str(zmax_i) + " " 
-                                                                            + str(r_i) + " " 
-                                                                            + str(u_i) + " " 
+                                                                #            + str(s_12_i[0]) + " " 
+                                                                #            + str(s_12_i[1]) + " " 
+                                                                #            + str(init_feedback) + " " 
+                                                                #            + str(init_stress_influx) + " " 
+                                                                #            + str(init_influx) + " " 
+                                                                #            + str(cue_P_i) + " " 
+                                                                #            + str(cue_NP_i) + " " 
+                                                                #            + str(s0_i) + " " 
+                                                                #            + str(ad_i) + " " 
+                                                                #            + str(aP_i) + " " 
+                                                                #            + str(dmax_i) + " " 
+                                                                #            + str(zmax_i) + " " 
+                                                                #            + str(r_i) + " " 
+                                                                #            + str(u_i) + " " 
                                                                             )
