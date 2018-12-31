@@ -25,10 +25,6 @@ import matplotlib.gridspec as gridspec
 from matplotlib.ticker import AutoMinorLocator
 from matplotlib import cm
 
-# some base style file to use
-# one can easily delete this if it throws an error
-plt.style.use('base')
-
 # some stuff to render fonts in graphs
 rcParams['axes.labelsize'] = 15
 rcParams['text.usetex'] = True
