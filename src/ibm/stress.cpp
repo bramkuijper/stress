@@ -72,6 +72,8 @@ double s_P_2_NP[2] = {0.0,0.0};
 // switch rate from NP to P
 double s_NP_2_P[2] = {0.0,0.0};
 
+
+// TODO: rename
 // per generation 
 // switching probability from world 1 to 2
 // and from world 2 to 1
@@ -364,23 +366,23 @@ void create_offspring(
 // - whether or not individual is in environment P
 // - its level of damage
 // - its current hormone level
-double survival(
+double survival_prob(
         bool const is_in_envt_P, 
-        double const damage,
         double const hormone_level)
 {
     assert(damage >= 0);
     assert(damage <= dmax);
-    double p_survive = s0 + (1.0 - s0) * (1.0 - pow(damage/dmax, ad));
+    double p_survive = 1.0;
 
     // survive dependent on predator
     if (is_in_envt_P)
     {
-        p_survive *= pow(hormone_level/zmax, aP);
+        p_survive = s0 + (1-s0) * pow(hormone_level/zmax, aP);
     }
 
     return(p_survive);
 }
+
 
 // survival of individuals
 void survive()
@@ -433,10 +435,9 @@ void survive()
         }
 
 
-        // OK, did not survive dependent on the level of stress & damage
+        // OK, did not survive dependent on the level of stress 
         if (gsl_rng_uniform(rng_r) > 
-                survival(true, 
-                    P[ind_i].damage,
+                survival_prob(true, 
                     P[ind_i].hormone))
         {
             // delete individual from stack
@@ -514,8 +515,7 @@ void survive()
 
         // OK, did not survive dependent on the level of stress
         if (gsl_rng_uniform(rng_r) > 
-                survival(false, 
-                    NP[ind_i].damage,
+                survival_prob(false, 
                     NP[ind_i].hormone))
         {
             // delete individual from stack
@@ -574,6 +574,16 @@ void reproduce()
     }
 
     Individual kids[Noffspring];
+
+    // make a fecundity distribution
+    double cumul_dist[numP + numNP];
+
+    double cumul_sum = 0.0;
+
+
+
+
+
 
     // calculate fraction of adults in P
     double fraction_in_P = (double) numP / (numP + numNP);
@@ -643,8 +653,6 @@ void write_data()
 {
     double mean_feedback = 0;
     double ss_feedback = 0;
-    double mean_stress_influx = 0;
-    double ss_stress_influx = 0;
     double mean_influx = 0;
     double ss_influx = 0;
     double mean_hormone = 0;
@@ -768,9 +776,7 @@ int main(int argc, char ** argv)
     // the main part of the code
 	for (generation = 0; generation <= NumGen; ++generation)
 	{
-
 		survive();
-
 		reproduce();
         
         do_stats = generation % skip == 0;

@@ -132,11 +132,19 @@ A first goal is to derive a general model of the stress response which allows
 \end_layout
 
 \begin_layout Subsection
-Theoretical literature scan
+Hormone levels
 \end_layout
 
 \begin_layout Standard
-It is helpful to consider 
+We have
+\begin_inset Formula 
+\begin{align*}
+h_{t+1} & =\theta+\left(1-\phi\right)h_{t}
+\end{align*}
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
