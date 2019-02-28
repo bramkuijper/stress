@@ -10,7 +10,10 @@
 #include <iomanip>
 #include <string>
 #include <cmath>
+#include <algorithm>
 #include <cassert>
+#include <vector>
+#include <random>
 
 // random number generation, via the GNU scientific library
 #include <gsl/gsl_rng.h>
@@ -72,8 +75,6 @@ double s_P_2_NP[2] = {0.0,0.0};
 // switch rate from NP to P
 double s_NP_2_P[2] = {0.0,0.0};
 
-
-// TODO: rename
 // per generation 
 // switching probability from world 1 to 2
 // and from world 2 to 1
@@ -137,6 +138,10 @@ typedef Individual Population[Npop];
 // also make two stacks for the new populations after 
 // environmental change
 Population P, NP, Pnew, NPnew;
+
+// vector with doubles on cumulative damage levels
+double damage_cumul[Npop];
+double sum_damage;
 
 // generate a unique filename for the output file
 string filename("sim_stress");
@@ -203,7 +208,8 @@ void mutate_bound(
         double const bound_lower,
         double const bound_upper)
 {
-    G += gsl_rng_uniform(rng_r) < mu ? gsl_ran_gaussian(rng_r, sdmu) : 0;
+    G += gsl_rng_uniform(rng_r) < mu ? 
+        gsl_ran_gaussian(rng_r, sdmu) : 0;
 
     // set the bound
     if (G < bound_lower)
@@ -366,31 +372,82 @@ void create_offspring(
 // - whether or not individual is in environment P
 // - its level of damage
 // - its current hormone level
-double survival_prob(
+double hormone_survival(
         bool const is_in_envt_P, 
         double const hormone_level)
 {
-    assert(damage >= 0);
-    assert(damage <= dmax);
-    double p_survive = 1.0;
+    // calculate survival probability
+    double hormone_cost = 0.0;
 
     // survive dependent on predator
     if (is_in_envt_P)
     {
-        p_survive = s0 + (1-s0) * pow(hormone_level/zmax, aP);
+        hormone_cost = pow(hormone_level/zmax, aP);
     }
 
-    return(p_survive);
+    return(1.0 - hormone_cost);
+}
+
+// move between environments
+void environmental_switching()
+{
+    // counters for individuals that move to a different
+    // patch due to environmental change, with switch rates
+    // s_P_2_NP and s_NP_2_P
+    int numNPnew = 0;
+
+    for (int ind_i = 0; ind_i < numP; ++ind_i)
+    {
+        if (gsl_rng_uniform(rng_r)  < s_P_2_NP[current_world])
+        {
+            // copy individual to NPnew stack which is a 
+            // placeholder for all individuals who go to NP
+            //
+            // we cannot directly transfer individuals to the NP
+            // stack itself, as the NP stack still needs to undergo
+            // survival selection.
+            NPnew[numNPnew++] = P[ind_i];
+            P[ind_i] = P[--numP];
+            --ind_i;
+            assert(numP >= 0);
+            assert(numP <= Npop);
+            assert(numNPnew >= 0);
+            assert(numNP <= Npop);
+        }
+    }
+
+    for (int ind_i = 0; ind_i < numNP; ++ind_i)
+    {
+        if (gsl_rng_uniform(rng_r)  < s_NP_2_P[current_world])
+        {
+            // copy individual to NPnew stack which is a 
+            // placeholder for all individuals who go to NP
+            //
+            // we cannot directly transfer individuals to the NP
+            // stack itself, as the NP stack still needs to undergo
+            // survival selection.
+            P[numP++] = NP[ind_i];
+            NP[ind_i] = NP[--numNP];
+            --ind_i;
+            assert(numP >= 0);
+            assert(numP <= Npop);
+            assert(numNP >= 0);
+            assert(numNP <= Npop);
+        }
+    }
+
+    // now copy NPnew to NP
+    for (int ind_i = 0; ind_i < numNPnew; ++ind_i)
+    {
+        NP[numNP++] = NPnew[ind_i];
+    }
 }
 
 
 // survival of individuals
 void survive()
 {
-    // counters for individuals that move to a different
-    // patch due to environmental change, with switch rates
-    // s_P_2_NP and s_NP_2_P
-    int numNPnew = 0;
+    sum_damage = 0.0;
 
     // survival in the P population
     for (int ind_i = 0; ind_i < numP; ++ind_i)
@@ -423,21 +480,9 @@ void survive()
                     P[ind_i].hormone;
         }
        
-        // update damage levels
-        P[ind_i].damage = (1.0 - r) * P[ind_i].damage + u * P[ind_i].hormone;
-
-        // set boundaries to damage level
-        assert(P[ind_i].damage >= 0);
-
-        if (P[ind_i].damage > dmax)
-        {
-            P[ind_i].damage = dmax;
-        }
-
-
-        // OK, did not survive dependent on the level of stress 
+        // OK, did not survive dependent on the level of stress & damage
         if (gsl_rng_uniform(rng_r) > 
-                survival_prob(true, 
+                hormone_survival(true, 
                     P[ind_i].hormone))
         {
             // delete individual from stack
@@ -451,23 +496,20 @@ void survive()
         }
         else // Individual survived. Check for potential for envt'al change
         {
-            // individual switches to a different environment
-            if (gsl_rng_uniform(rng_r)  < s_P_2_NP[current_world])
+            // update damage levels
+            P[ind_i].damage = (1.0 - r) * P[ind_i].damage + u * P[ind_i].hormone;
+
+            // set boundaries to damage level
+            assert(P[ind_i].damage >= 0);
+
+            if (P[ind_i].damage > dmax)
             {
-                // copy individual to NPnew stack which is a 
-                // placeholder for all individuals who go to NP
-                //
-                // we cannot directly transfer individuals to the NP
-                // stack itself, as the NP stack still needs to undergo
-                // survival selection.
-                NPnew[numNPnew++] = P[ind_i];
-                P[ind_i] = P[--numP];
-                --ind_i;
-                assert(numP >= 0);
-                assert(numP <= Npop);
-                assert(numNP >= 0);
-                assert(numNP <= Npop);
+                P[ind_i].damage = dmax;
             }
+
+            // add to cumulative distribution of damage
+            damage_cumul[ind_i] = sum_damage + P[ind_i].damage;
+            sum_damage = damage_cumul[ind_i];
         }
     }
 
@@ -502,20 +544,9 @@ void survive()
                     NP[ind_i].hormone;
         }
 
-        // update damage levels
-        NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
-
-        // set boundaries to damage level
-        assert(NP[ind_i].damage >= 0);
-
-        if (NP[ind_i].damage > dmax)
-        {
-            NP[ind_i].damage = dmax;
-        }
-
         // OK, did not survive dependent on the level of stress
         if (gsl_rng_uniform(rng_r) > 
-                survival_prob(false, 
+                hormone_survival(false, 
                     NP[ind_i].hormone))
         {
             // delete individual from stack
@@ -529,25 +560,41 @@ void survive()
         }
         else // Individual survived. Check for potential for envt'al change
         {
-            // individual switches to a different environment
-            if (gsl_rng_uniform(rng_r)  < s_P_2_NP[current_world])
+            // update damage levels
+            NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
+
+            // set boundaries to damage level
+            assert(NP[ind_i].damage >= 0);
+
+            if (NP[ind_i].damage > dmax)
             {
-                // as all survival is done we can directly copy individual to
-                // P stack and delete it here
-                P[numP++] = NP[ind_i];
-                NP[ind_i] = NP[--numNP];
-                --ind_i;
-                
-                assert(numP >= 0);
-                assert(numP <= Npop);
-                assert(numNP >= 0);
-                assert(numNP <= Npop);
+                NP[ind_i].damage = dmax;
             }
+
+            // add to cumulative distribution of damage
+            damage_cumul[numP + ind_i] = sum_damage + NP[ind_i].damage;
+            sum_damage = damage_cumul[ind_i];
+
+//            // individual switches to a different environment
+//            if (gsl_rng_uniform(rng_r)  < s_P_2_NP[current_world])
+//            {
+//                // as all survival is done we can directly copy individual to
+//                // P stack and delete it here
+//                P[numP++] = NP[ind_i];
+//                NP[ind_i] = NP[--numNP];
+//                --ind_i;
+//                
+//                assert(numP >= 0);
+//                assert(numP <= Npop);
+//                assert(numNP >= 0);
+//                assert(numNP <= Npop);
+//            }
         }
     }
 
     if (numP + numNP == 0)
     {
+        cout << "extinct" << endl;
         write_parameters();
         exit(1);
     }
@@ -575,45 +622,100 @@ void reproduce()
 
     Individual kids[Noffspring];
 
-    // make a fecundity distribution
-    double cumul_dist[numP + numNP];
+    int Nparents = 2 * Noffspring;
 
-    double cumul_sum = 0.0;
+    // allocate array with random samples from cumulative distribution
+    vector <double> cumul_dist_samples(Nparents, 0.0);
 
-
-
-
-
-
-    // calculate fraction of adults in P
-    double fraction_in_P = (double) numP / (numP + numNP);
+    // store the parents that result from the sample (because random shuffle)
+    vector <int> parents(Nparents, 0);
 
     // go through all the offspring that need to
     // made
+    for (int parent_i = 0; parent_i < Nparents; ++parent_i)
+    {
+        // now add random numbers from the cumulative distribution to the mix
+        cumul_dist_samples[parent_i] = gsl_rng_uniform(rng_r) * sum_damage;
+    }
+
+    // sort cumulative samples from low to high
+    sort(cumul_dist_samples.begin(), cumul_dist_samples.end());
+
+    int cumul_counter = 0;
+   
+    // associate random numbers with population
+    for (int ind_i = 0; ind_i < numP + numNP; ++ind_i)
+    {
+        for (; cumul_counter < Nparents; ++cumul_counter)
+        {
+            // ok random deviate lower than current percentile
+            if (cumul_dist_samples[cumul_counter] <= damage_cumul[ind_i])
+            {
+                parents[cumul_counter] = ind_i;
+            }
+            else
+            {
+                // break cumul counter for loop
+                // and iterate to the next deviate of the cumulative distribution
+                break;
+            }
+        }
+
+        if (cumul_counter >= Nparents)
+        {
+            break;
+        }
+    } // end for (int ind_i = 0
+
+    assert(cumul_counter >= Nparents);
+
+    // randomly shuffle parents
+    //
+    // first make sure shuffler has same seed as all the rest
+    std::mt19937 rng_std; 
+
+    // set the seed
+    rng_std.seed(seed);
+
+    // now shuffle the female dispersers
+    shuffle(
+            parents.begin(),
+            parents.end(),
+            rng_std);
+
     for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
     {
-        // sample father
+        // get father
+        assert(parents[2 * kid_i] >= 0);
+        assert(parents[2 * kid_i] <= Npop);
+
         Individual father;
 
-        if (gsl_rng_uniform(rng_r) < fraction_in_P)
+        if (parents[2*kid_i] < numP)
         {
-            father = P[gsl_rng_uniform_int(rng_r, numP)];
+            father = P[parents[2*kid_i]];
         }
         else
         {
-            father = NP[gsl_rng_uniform_int(rng_r, numNP)];
+            father = NP[parents[2*kid_i] - numP];
         }
+        
+        
+        // get father
+        assert(parents[2 * kid_i + 1] >= 0);
+        assert(parents[2 * kid_i + 1] <= Npop);
+
 
         // sample mother
         Individual mother;
-
-        if (gsl_rng_uniform(rng_r) < fraction_in_P)
+        
+        if (parents[2*kid_i + 1] < numP)
         {
-            mother = P[gsl_rng_uniform_int(rng_r, numP)];
+            mother = P[parents[2*kid_i + 1]];
         }
         else
         {
-            mother = NP[gsl_rng_uniform_int(rng_r, numNP)];
+            mother = NP[parents[2*kid_i + 1] - numP];
         }
 
         // create the offspring
@@ -653,6 +755,8 @@ void write_data()
 {
     double mean_feedback = 0;
     double ss_feedback = 0;
+    double mean_stress_influx = 0;
+    double ss_stress_influx = 0;
     double mean_influx = 0;
     double ss_influx = 0;
     double mean_hormone = 0;
@@ -776,7 +880,10 @@ int main(int argc, char ** argv)
     // the main part of the code
 	for (generation = 0; generation <= NumGen; ++generation)
 	{
+        environmental_switching();
+
 		survive();
+
 		reproduce();
         
         do_stats = generation % skip == 0;
