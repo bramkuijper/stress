@@ -44,7 +44,7 @@ dev.off()
 # create dataset that has 30 timepoints
 time.data <- NULL
 
-nrep <- 3
+nrep <- 1
 
 for (row_i in seq(1,nrow(the.data),1))
 {
@@ -55,7 +55,7 @@ for (row_i in seq(1,nrow(the.data),1))
     influx <- the.data[row_i,"mean_influx"]
     var_influx <- the.data[row_i,"var_influx"]
 
-    stress_influx <- the.data[row_i,"stress_influx"]
+    stress_influx <- the.data[row_i,"mean_stress_influx"]
     var_stress_influx <- the.data[row_i,"var_stress_influx"]
 
     hormone_decay <- the.data[row_i,"hormone_decay"]
@@ -90,13 +90,13 @@ for (row_i in seq(1,nrow(the.data),1))
 
         stress_t = zt_vals[[i]]
 
-        for (t in range(0,30))
+        for (t in seq(0,30,1))
         {
             stress_tplus1 = stress_t * (1.0 - decay_vals[[i]]) + influx_vals[[i]]
 
             if (t == 10)
             {
-                stress_tplus1 == stress_tplus1 + stress_influx_vals[[i]]
+                stress_tplus1 = stress_tplus1 + stress_influx_vals[[i]]
             }
 
             the_list <- list(
@@ -112,17 +112,28 @@ for (row_i in seq(1,nrow(the.data),1))
 
             stress_t <- stress_tplus1
 
-            time.data <- rbind(time.data,the_list)
+            if (is.null(time.data))
+            {
+                time.data <- as.data.frame(the_list)
+            }
+            else
+            {
+                time.data <- rbind(time.data,the_list)
+            }
+
         }
     }
 }
 
+str(time.data)
+
 
 pdf("lines_stress.pdf")
 print(xyplot(
-             stress ~ t | sNP2P_1 * sP2NP_1 * cue_P * cue_NP * damage_decay * hormone_damage
+             stress ~ time | sNP2P_1 * sP2NP_1 * cue_P * cue_NP * damage_decay * hormone_damage
              ,data=time.data
              ,groups=replicate
+             ,ylim=c(0,10)
              ,strip=function(strip.levels,...) { strip.default(strip.levels=T,...) }
              ))
 dev.off()
