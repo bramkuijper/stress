@@ -367,25 +367,16 @@ void create_offspring(
     kid.damage = 0.0;
 }
 
-// calculate survival probability
+// calculate mortality probability
 // dependent on 
 // - whether or not individual is in environment P
 // - its level of damage
 // - its current hormone level
-double hormone_survival(
-        bool const is_in_envt_P, 
-        double const hormone_level)
+double pkill(double const hormone_level)
 {
-    // calculate survival probability
-    double hormone_cost = 0.0;
+    double kill_prob = 1.0 - pow(hormone_level/zmax, aP);
 
-    // survive dependent on predator
-    if (is_in_envt_P)
-    {
-        hormone_cost = pow(hormone_level/zmax, aP);
-    }
-
-    return(1.0 - hormone_cost);
+    return(kill_prob);
 }
 
 // move between environments
@@ -481,9 +472,8 @@ void survive()
         }
        
         // OK, did not survive dependent on the level of stress & damage
-        if (gsl_rng_uniform(rng_r) > 
-                hormone_survival(true, 
-                    P[ind_i].hormone))
+        if (gsl_rng_uniform(rng_r) < 
+                pkill(P[ind_i].hormone))
         {
             // delete individual from stack
             P[ind_i] = P[--numP];
@@ -544,52 +534,21 @@ void survive()
                     NP[ind_i].hormone;
         }
 
-        // OK, did not survive dependent on the level of stress
-        if (gsl_rng_uniform(rng_r) > 
-                hormone_survival(false, 
-                    NP[ind_i].hormone))
+        // update damage levels
+        NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
+
+        // set boundaries to damage level
+        assert(NP[ind_i].damage >= 0);
+
+        if (NP[ind_i].damage > dmax)
         {
-            // delete individual from stack
-            NP[ind_i] = NP[--numNP];
-            --ind_i;
-
-            assert(numP >= 0);
-            assert(numP <= Npop);
-            assert(numNP >= 0);
-            assert(numNP <= Npop);
+            NP[ind_i].damage = dmax;
         }
-        else // Individual survived. Check for potential for envt'al change
-        {
-            // update damage levels
-            NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
 
-            // set boundaries to damage level
-            assert(NP[ind_i].damage >= 0);
+        // add to cumulative distribution of damage
+        damage_cumul[numP + ind_i] = sum_damage + NP[ind_i].damage;
+        sum_damage = damage_cumul[ind_i];
 
-            if (NP[ind_i].damage > dmax)
-            {
-                NP[ind_i].damage = dmax;
-            }
-
-            // add to cumulative distribution of damage
-            damage_cumul[numP + ind_i] = sum_damage + NP[ind_i].damage;
-            sum_damage = damage_cumul[ind_i];
-
-//            // individual switches to a different environment
-//            if (gsl_rng_uniform(rng_r)  < s_P_2_NP[current_world])
-//            {
-//                // as all survival is done we can directly copy individual to
-//                // P stack and delete it here
-//                P[numP++] = NP[ind_i];
-//                NP[ind_i] = NP[--numNP];
-//                --ind_i;
-//                
-//                assert(numP >= 0);
-//                assert(numP <= Npop);
-//                assert(numNP >= 0);
-//                assert(numNP <= Npop);
-//            }
-        }
     }
 
     if (numP + numNP == 0)

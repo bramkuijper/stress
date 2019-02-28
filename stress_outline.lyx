@@ -8,14 +8,10 @@
 \begin_preamble
 \definecolor{darkblue}{RGB}{0,4,106}
 \usepackage{amsmath}
-\usepackage{doi}
-\usepackage{tikz}
-\usepackage{pgfplots}
-\pgfplotsset{width=7cm}
-\allowdisplaybreaks
-\tikzset{test/.style={font=\sffamily\huge}}
-\DeclareMathVersion{sfnums}
-\usepackage{apjfonts}
+
+
+\usepackage[T1]{fontenc}
+\usepackage{newpxtext,newpxmath}
 \end_preamble
 \options numbers,sort&compress
 \use_default_options true
@@ -24,8 +20,8 @@
 \language_package default
 \inputencoding auto
 \fontencoding global
-\font_roman "times" "default"
-\font_sans "helvet" "default"
+\font_roman "default" "default"
+\font_sans "default" "default"
 \font_typewriter "default" "default"
 \font_math "auto" "auto"
 \font_default_family default
@@ -105,38 +101,111 @@
 \begin_body
 
 \begin_layout Section
-An evolutionary model of the stress response
+Autocorrelation in the binary model
 \end_layout
 
 \begin_layout Standard
-So far, there is little formal theory that allows us to make sense of variation
- among organisms in the way they respond to stressors.
- Our aim is to develop a series of models to understand how stress responses
- may be affected by ecological context (environmental change), the underlying
- mechanisms of hormonal systems (e.g., feedbacks, decay) and development.
-\end_layout
+We have the following transition matrix:
+\begin_inset Formula 
+\begin{align*}
+\mathbf{S} & =\left[\begin{array}{cc}
+1-s_{\mathrm{p}\rightarrow\mathrm{np}} & s_{\mathrm{np}\rightarrow\mathrm{p}}\\
+s_{\mathrm{p}\rightarrow\mathrm{np}} & 1-s_{\mathrm{np}\rightarrow\mathrm{p}}
+\end{array}\right],
+\end{align*}
 
-\begin_layout Subsection
-How strongly is a stress response tied to its ecological context?
-\end_layout
+\end_inset
 
-\begin_layout Standard
-A first goal is to derive a general model of the stress response which allows
- to assess how a particular ecological context affects how the stress response
- should develop: this is particularly important as mounting a stress response
- upon encounter of a stressor may not necessarily be helpful when dealing
- with the current stressor, but may help an organism to prepare for the
- subsequent occurrence of another stressor.
- Consequently, we would expect that an autocorrelated environment would
- be particularly relevant in this context.
-\end_layout
+which reflects transitions between two environments (here designated as
+ 
+\begin_inset Formula $\left[\mathrm{p,np}\right]=[-1,1]$
+\end_inset
 
-\begin_layout Subsection
-Theoretical literature scan
-\end_layout
+).
+ The eigenvalues are given by
+\begin_inset Formula 
+\begin{align*}
+\lambda_{1} & =1\\
+\lambda_{2} & =1-\bar{s},
+\end{align*}
 
-\begin_layout Standard
-It is helpful to consider 
+\end_inset
+
+where 
+\begin_inset Formula $\bar{s}=s_{\mathrm{np}\rightarrow\mathrm{p}}+s_{\mathrm{p}\rightarrow\mathrm{np}}$
+\end_inset
+
+.
+ These eigenvalues form the entries on the diagonal of the following matrix
+\begin_inset Formula 
+\begin{align*}
+\mathbf{D} & =\left[\begin{array}{cc}
+1 & 0\\
+0 & 1-s_{\mathrm{np}\rightarrow\mathrm{p}}-s_{\mathrm{p}\rightarrow\mathrm{np}}
+\end{array}\right].
+\end{align*}
+
+\end_inset
+
+The corresponding matrix of left eigenvectors 
+\begin_inset Formula $\mathbf{V}$
+\end_inset
+
+ (with each column reflecting an eigenvector) is
+\begin_inset Formula 
+\begin{align*}
+\mathbf{V} & =\left[\begin{array}{cc}
+1 & -\frac{s_{\mathrm{p}\rightarrow\mathrm{np}}}{s_{\mathrm{np}\rightarrow\mathrm{p}}}\\
+1 & 1
+\end{array}\right].
+\end{align*}
+
+\end_inset
+
+We can then calculate the transition matrix over 
+\begin_inset Formula $d$
+\end_inset
+
+ timesteps, which is given by
+\begin_inset Formula 
+\begin{align*}
+\mathbf{P}^{d} & =\mathbf{V}^{-1}\mathbf{D}^{d}\mathbf{V},
+\end{align*}
+
+\end_inset
+
+so that
+\begin_inset Formula 
+\begin{align*}
+\mathbf{P}^{d} & =\frac{1}{\bar{s}}\left[\begin{array}{cc}
+s_{\mathrm{np}\rightarrow\mathrm{p}}+\left(1-\bar{s}\right)^{d}s_{\mathrm{p}\rightarrow\mathrm{np}} & s_{\mathrm{p}\rightarrow\mathrm{np}}\left[\left(1-\bar{s}\right)^{d}-1\right]\\
+s_{\mathrm{np}\rightarrow\mathrm{p}}\left[\left(1-\bar{s}\right)^{d}-1\right] & s_{\mathrm{np}\rightarrow\mathrm{p}}\left(1-\bar{s}\right)^{d}+s_{\mathrm{p}\rightarrow\mathrm{np}}
+\end{array}\right].
+\end{align*}
+
+\end_inset
+
+We can then obtain the autocorrelation over 
+\begin_inset Formula $d$
+\end_inset
+
+ timesteps by calculating 
+\begin_inset Formula $\mathbb{E}\left[X_{n}X_{n+d}\right]$
+\end_inset
+
+ by conditioning:
+\begin_inset Formula 
+\begin{align*}
+\mathbb{E}\left[X_{n}X_{n+d}\right] & =\sum_{i}\mathbb{E}\left[X_{n}X_{n+d}\mid X_{n}=i\right]\\
+ & =\mathbb{E}\left[X_{n}X_{n+d}\mid X_{n}=-1\right]\mathbb{P}\left(X_{n}=-1\right)+\mathbb{E}\left[X_{n}X_{n+d}\mid X_{n}=1\right]\mathbb{P}\left(X_{n}=1\right)\\
+ & =\mathbb{E}\left[X_{n+d}\mid X_{n}=1\right]\frac{s_{\mathrm{p}\rightarrow\mathrm{np}}}{\bar{s}}-\mathbb{E}\left[X_{n+d}\mid X_{n}=-1\right]\frac{s_{\mathrm{np}\rightarrow\mathrm{p}}}{\bar{s}}\\
+ & =\left(-1\cdot P_{12}^{d}+1\cdot P_{22}^{d}\right)\frac{s_{\mathrm{p}\rightarrow\mathrm{np}}}{\bar{s}}-\left(-1\cdot P_{11}^{d}+1\cdot P_{21}^{d}\right)\frac{s_{\mathrm{np}\rightarrow\mathrm{p}}}{\bar{s}}\\
+ & =\left(1-\bar{s}\right)^{d}
+\end{align*}
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
