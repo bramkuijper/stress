@@ -45,7 +45,20 @@ matplotlib.rcParams.update(pgf_with_custom_preamble)
 ctr = 0
 
 # make stress iterations for this row of the data.frame
-def stress_iterations(row):
+def stress_iterations(row, max_time):
+
+    # get hormone level
+    mean_hormone = row["mean_hormone"]
+    var_hormone = row["var_hormone"]
+
+    influx = row["mean_influx"]
+    var_influx = row["var_influx"]
+
+    stress_influx = row["mean_stress_influx"]
+    var_stress_influx = row["var_stress_influx"]
+
+    hormone_decay = row["hormone_decay"]
+    var_hormone_decay = row["var_feedback"]
 
     # get params
     sNP2P_1 = row["sNP2P_1"]
@@ -55,8 +68,75 @@ def stress_iterations(row):
     damage_decay = row["damage_decay"]
     hormone_damage = row["hormone_damage"]
 
-    zt_vals = np.random.normal
+    nrep = 100
 
+    zt_vals = np.random.normal(
+            loc = mean_hormone
+            ,scale = sqrt(var_hormone)
+            ,size = nrep)
+
+    zt_vals = list(zt_vals)
+
+    decay_vals = np.random.normal(
+            loc = hormone_decay
+            ,scale = sqrt(var_hormone_decay)
+            ,size = nrep
+            )
+
+    decay_vals = list(decay_vals)
+
+    influx_vals = np.random.normal(
+            loc = influx
+            ,scale = sqrt(var_influx)
+            ,size = nrep)
+
+    influx_vals = list(influx_vals)
+
+    stress_influx_vals = np.random.normal(
+            loc = stress_influx
+            ,scale = sqrt(var_stress_influx)
+            ,size = nrep)
+
+    stress_influx_vals = list(stress_influx_vals)
+
+    iter_data = None
+
+    # now go through all the sampled replicates
+    for repl_i in range(nrep):
+
+        # allocate a list of values of the stress level
+        stress_t = [ 0 for t in range(max_time + 1) ]
+
+        stress_t[0] = zt_vals[repl_i]
+
+        stress_tplus1 = 0
+
+        # iterate system for max_time timestpes
+        for time_step in range(max_time):
+
+            # get value for time t+1
+            stress_t[time_step + 1] = stress_t[time_step] * (1.0 - decay_vals[repl_i]) + \
+                    influx_vals[repl_i]
+
+            if t == 10:
+           
+                stress_t[time_step + 1] = stress_t[time_step + 1] + stress_influx_vals[repl_i]
+
+        current_iter_data = pd.DataFrame(
+                data=np.array(
+                    [list(range(max_time + 1))
+                        ,stress_t
+                        ,[ repl_i for i in range(max_time + 1) ]
+                    ]
+                    )
+                )
+
+        if iter_data is None:
+            iter_data = current_iter_data
+        else:
+            iter_data = iter_data.append(current_iter_data, ignore_index=True)
+
+    return(iter_data)
 
 # the block function
 def block(
@@ -188,6 +268,8 @@ fig = plt.figure(figsize=(5, 5))
 widths = [ 1 ]
 heights = [ 1 ]
 
+
+# start gridspec object
 gs = gridspec.GridSpec(
         len(heights), 
         len(widths), 
