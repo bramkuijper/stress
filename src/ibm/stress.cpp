@@ -548,7 +548,6 @@ void survive()
         // add to cumulative distribution of damage
         damage_cumul[numP + ind_i] = sum_damage + NP[ind_i].damage;
         sum_damage = damage_cumul[ind_i];
-
     }
 
     if (numP + numNP == 0)

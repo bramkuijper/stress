@@ -41,6 +41,9 @@ print(
       )
 dev.off()
 
+if (!exists("time.data"))
+{
+
 # create dataset that has 30 timepoints
 time.data <- NULL
 
@@ -126,6 +129,7 @@ for (row_i in seq(1,nrow(the.data),1))
 }
 
 str(time.data)
+}
 
 
 pdf("lines_stress.pdf")
@@ -134,6 +138,22 @@ print(xyplot(
              ,data=time.data
              ,groups=replicate
              ,ylim=c(0,10)
+             ,strip=function(strip.levels,...) { strip.default(strip.levels=T,...) }
+             ))
+dev.off()
+
+pdf("lines_stress_subset.pdf")
+print(xyplot(
+                #             stress ~ time | sNP2P_1 * sP2NP_1 * cue_P * cue_NP * damage_decay * hormone_damage
+            stress ~ time  | damage_decay
+             ,data=time.data[
+                            order(time.data$time) 
+                             & time.data$hormone_damage == 0.5
+                             & time.data$cue_NP == 0.08
+                             & time.data$cue_P == 0.5
+                             & time.data$sP2NP_1 == 0.1
+                             & time.data$sNP2P_1 == 0.05,]
+             ,groups=replicate
              ,strip=function(strip.levels,...) { strip.default(strip.levels=T,...) }
              ))
 dev.off()
