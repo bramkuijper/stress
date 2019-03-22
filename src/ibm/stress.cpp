@@ -102,6 +102,7 @@ double dmax = 0;
 double zmax = 0;
 double r = 0;
 double u = 0;
+int death_t = 0;
 
 // which of the two world currently applies
 bool current_world = false;
@@ -440,6 +441,8 @@ void survive()
 {
     sum_damage = 0.0;
 
+    death_t = 0;
+
     // survival in the P population
     for (int ind_i = 0; ind_i < numP; ++ind_i)
     {
@@ -449,7 +452,7 @@ void survive()
             0.5 * (P[ind_i].influx[0] + P[ind_i].influx[1])
              + (1.0 - 0.5 * (P[ind_i].feedback[0] + P[ind_i].feedback[1]))
              * P[ind_i].hormone;
-
+        
         // individual gets predator cue 
         if (gsl_rng_uniform(rng_r) < cue_P)
         {
@@ -475,6 +478,7 @@ void survive()
         if (gsl_rng_uniform(rng_r) < 
                 pkill(P[ind_i].hormone))
         {
+            ++death_t;
             // delete individual from stack
             P[ind_i] = P[--numP];
             --ind_i;
@@ -498,7 +502,7 @@ void survive()
             }
 
             // add to cumulative distribution of damage
-            damage_cumul[ind_i] = sum_damage + P[ind_i].damage;
+            damage_cumul[ind_i] = sum_damage + (1.0 - pow(P[ind_i].damage/dmax, ad));
             sum_damage = damage_cumul[ind_i];
         }
     }
@@ -546,7 +550,7 @@ void survive()
         }
 
         // add to cumulative distribution of damage
-        damage_cumul[numP + ind_i] = sum_damage + NP[ind_i].damage;
+        damage_cumul[numP + ind_i] = sum_damage + (1.0 - pow(P[ind_i].damage/dmax, ad));
         sum_damage = damage_cumul[ind_i];
     }
 
@@ -563,6 +567,33 @@ void survive()
         current_world = !current_world;
     }
 }
+
+
+//void reproduce()
+//{
+//    int Noffspring = Npop - numP - numNP;
+//
+//    int Nparents = numP + numNP;
+//    
+//    if (Noffspring == 0)
+//    {
+//        return;
+//    }
+//
+//    Individual kids[Noffspring];
+//    double sample = gsl_rng_uniform(rng_r) * sum_damage;
+//
+//    // now sample parents for each offspring
+//    for (int offspring_i = 0; offspring_i < Noffspring; ++offspring_i)
+//    {
+//
+//        for (int parent_i = 0; parent_i < Nparents; ++parent_i)
+//        {
+//        }
+//    }
+//}
+
+
 
 // now reproduce
 void reproduce()
@@ -592,7 +623,8 @@ void reproduce()
     // made
     for (int parent_i = 0; parent_i < Nparents; ++parent_i)
     {
-        // now add random numbers from the cumulative distribution to the mix
+        // now add random numbers from the cumulative distribution to the list
+        // of samples that need to be found in the cumulative distribution
         cumul_dist_samples[parent_i] = gsl_rng_uniform(rng_r) * sum_damage;
     }
 
@@ -600,7 +632,7 @@ void reproduce()
     sort(cumul_dist_samples.begin(), cumul_dist_samples.end());
 
     int cumul_counter = 0;
-   
+
     // associate random numbers with population
     for (int ind_i = 0; ind_i < numP + numNP; ++ind_i)
     {
@@ -805,7 +837,9 @@ void write_data()
         << var_stress_influx << ";"
         << var_influx << ";"
         << var_hormone << ";"
-        << var_damage << ";" << endl;
+        << var_damage << ";" 
+        << (double)death_t/Npop << ";" 
+        << endl;
 }
 
 // write the headers of a datafile
@@ -822,7 +856,9 @@ void write_data_headers()
         << "var_stress_influx" << ";"
         << "var_influx" << ";"
         << "var_hormone" << ";"
-        << "var_damage" << ";" << endl;
+        << "var_damage" << ";" 
+        << "prop_dead" << ";"
+        << endl;
 }
 
 

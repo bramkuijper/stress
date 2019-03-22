@@ -86,7 +86,7 @@ fig = plt.figure(figsize=(10,15))
 # generate the grid of the graph
 # see: 
 widths = [ 1 ]
-heights = [ 1, 1, 1, 1, 1, 1]
+heights = [ 1, 1, 1, 1, 1, 1, 1]
 numrows = len(heights)
 numcols  = len(widths)
 
@@ -319,6 +319,19 @@ ax.set_ylim(0, zt + 4*var_zt)
 
 ax.set_ylabel(r"Stress response" + "\n" + r"to stimulus at $t=10$")
 ax.set_xlabel(r"Time")
+
+ax.tick_params(
+        axis="x",
+        which="both",
+        labelbottom=False)
+
+ax = plt.subplot(gs[6,0])
+
+ax.plot(dat["generation"]
+        ,dat["prop_dead"])
+
+ax.set_ylabel(r"Prob mort")
+        
 
 format = "pdf"
 
