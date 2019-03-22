@@ -327,6 +327,8 @@ filename = os.path.join(
         "graph_" + os.path.basename(sys.argv[1]) + "." + format
         )
 
+print(type(filename))
+
 plt.savefig(
         fname=filename,
         format=format, 
