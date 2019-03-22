@@ -2,18 +2,18 @@
 import os, re, sys, math
 from numpy import *
 
-mu_feedback = [0, 0.02]
-mu_stress_influx = [0, 0.02]
-mu_influx = [0, 0.02]
+mu_feedback = [0.02]
+mu_stress_influx = [0.02]
+mu_influx = [0.02]
 sdmu = [ 0.02]
 
 # switch rate from P to NP
-s_P2NP = [[ 0.5,0.5]]
-s_NP2P = [[ 0.1,0.01]]
+s_P2NP = [[ 0.1,0.1]]
+s_NP2P = [[ 0.05,0.05]]
 
 s_12 = [[ 0.1,0.1]]
 
-cue_P = [ 0.8 ]
+cue_P = [ 0.5 ]
 cue_NP = [ 0.08 ]
 
 s0 = [ 0.5 ]
@@ -23,8 +23,11 @@ aP = [ 0.5 ]
 dmax = [ 100 ]
 zmax = [ 100 ]
 
-r = [ 0.1, 0.5, 0.9 ]
-u = [ 0.5, 1, 10 ]
+# damage decay
+r = [ 0.9 ]
+
+# hormone damage
+u = [ 1 ]
 
 # number of replicates
 nrep = 3
@@ -36,6 +39,13 @@ init_stress_influx = 10.0
 init_influx = 2.0
 
 exe = "./xstress"
+
+bg = True
+
+bg_string = ""
+
+if bg:
+    bg_string = " &"
 
 # make all permutations of parameter combinations
 for rep_i in range(0,nrep):
@@ -67,7 +77,7 @@ for rep_i in range(0,nrep):
                                                                             + str(s_P2NP_i[0]) + " " 
                                                                             + str(s_P2NP_i[1]) + " " 
                                                                             + str(s_NP2P_i[0]) + " " 
-                                                                            + str(s_NP2P_i[1]) + " " 
+                                                                            + str(s_NP2P_i[1]) + " "                                                                            + bg_string
                                                                 #            + str(s_12_i[0]) + " " 
                                                                 #            + str(s_12_i[1]) + " " 
                                                                 #            + str(init_feedback) + " " 
@@ -82,4 +92,5 @@ for rep_i in range(0,nrep):
                                                                 #            + str(zmax_i) + " " 
                                                                 #            + str(r_i) + " " 
                                                                 #            + str(u_i) + " " 
+
                                                                             )

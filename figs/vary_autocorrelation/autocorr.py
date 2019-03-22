@@ -5,7 +5,7 @@
 import pandas as pd
 import functools
 import itertools
-import re, string, sys, os
+import re, string, sys, os, math
 import numpy as np
 import subprocess
 import matplotlib
@@ -45,41 +45,41 @@ matplotlib.rcParams.update(pgf_with_custom_preamble)
 ctr = 0
 
 # make stress iterations for this row of the data.frame
-def stress_iterations(row, max_time):
+def stress_iterations(row, max_time=30, nrep=100):
 
     # get hormone level
     mean_hormone = row["mean_hormone"]
     var_hormone = row["var_hormone"]
 
+    if var_hormone < 0:
+        var_hormone = 0.0
+
     influx = row["mean_influx"]
     var_influx = row["var_influx"]
 
+    if var_influx < 0:
+        var_influx = 0.0
+
     stress_influx = row["mean_stress_influx"]
     var_stress_influx = row["var_stress_influx"]
+    
+    if var_stress_influx < 0:
+        var_stress_influx = 0.0
 
-    hormone_decay = row["hormone_decay"]
+    hormone_decay = row["mean_feedback"]
     var_hormone_decay = row["var_feedback"]
-
-    # get params
-    sNP2P_1 = row["sNP2P_1"]
-    sP2NP_1 = row["sP2NP_1"]
-    cue_P = row["cue_P"] 
-    cue_NP = row["cue_NP"]
-    damage_decay = row["damage_decay"]
-    hormone_damage = row["hormone_damage"]
-
-    nrep = 100
+    
+    if var_hormone_decay < 0:
+        var_hormone_decay = 0.0
 
     zt_vals = np.random.normal(
             loc = mean_hormone
-            ,scale = sqrt(var_hormone)
+            ,scale = math.sqrt(var_hormone)
             ,size = nrep)
-
-    zt_vals = list(zt_vals)
 
     decay_vals = np.random.normal(
             loc = hormone_decay
-            ,scale = sqrt(var_hormone_decay)
+            ,scale = math.sqrt(var_hormone_decay)
             ,size = nrep
             )
 
@@ -87,14 +87,14 @@ def stress_iterations(row, max_time):
 
     influx_vals = np.random.normal(
             loc = influx
-            ,scale = sqrt(var_influx)
+            ,scale = math.sqrt(var_influx)
             ,size = nrep)
 
     influx_vals = list(influx_vals)
 
     stress_influx_vals = np.random.normal(
             loc = stress_influx
-            ,scale = sqrt(var_stress_influx)
+            ,scale = math.sqrt(var_stress_influx)
             ,size = nrep)
 
     stress_influx_vals = list(stress_influx_vals)
@@ -118,18 +118,18 @@ def stress_iterations(row, max_time):
             stress_t[time_step + 1] = stress_t[time_step] * (1.0 - decay_vals[repl_i]) + \
                     influx_vals[repl_i]
 
-            if t == 10:
-           
+            if time_step == 10:
                 stress_t[time_step + 1] = stress_t[time_step + 1] + stress_influx_vals[repl_i]
 
         current_iter_data = pd.DataFrame(
-                data=np.array(
-                    [list(range(max_time + 1))
-                        ,stress_t
-                        ,[ repl_i for i in range(max_time + 1) ]
-                    ]
+                    data=np.transpose(
+                        np.array([list(range(max_time + 1))
+                                    ,stress_t
+                                    ,[ repl_i for i in range(max_time + 1) ]
+                                ])
+                        )
+                    ,columns=["time","stress","replicate"]
                     )
-                )
 
         if iter_data is None:
             iter_data = current_iter_data
@@ -148,9 +148,10 @@ def block(
         ,ylabel=None
         ,title=None
         ,plot_empty=False
-        ,xtick_labels=True
+        ,xtick_labels=False
         ,ytick_labels=False
-        ,ylim=(-0.05,1.05)
+        ,xlim=(-1,32)
+        ,ylim=(0,200)
         ,ind_label=True):
 
     # get the counter for the letter indicator
@@ -162,32 +163,25 @@ def block(
     # number of replicate simulations
     nrepl = data.shape[0]
 
-    for i in nrepl:
+    cmap = cm.get_cmap('tab10')
+
+    for i in range(nrepl):
 
         # get data with a 40 timestep iteration
         # x 200 of stress iterations
-        stress_iters = stress_iterations(data[i])
+        stress_iters = stress_iterations(data.iloc[i],max_time=30)
 
+        replicate_id = list(stress_iters["replicate"].unique())
 
+        for replicate_id_i in replicate_id:
 
-    # sort by dispersal
-    data = data.sort_values(by=["d"])
+            subset = stress_iters[stress_iters["replicate"] == replicate_id_i]
 
-    # plot the yvars
-    for i, yvar in enumerate(yvars):
-
-        # obtain linestyle
-        if yvars_linestyles is None:
-            linestyle = "solid"
-        else:
-            linestyle = yvars_linestyles[i]
-
-        ax.plot(data["d"]
-                ,data[yvar] 
-                ,label=yvars_labels[i]
-                ,color=yvars_colors[i]
-                ,linewidth=yvars_lwds[i]
-                ,linestyle=linestyle)
+            ax.plot(subset["time"]
+                    ,subset["stress"]
+                    ,color=cmap.colors[i]
+                    ,alpha=0.1
+                    ,linewidth=0.5)
 
     # finalize the plot
     ax = finishblock(
@@ -198,8 +192,9 @@ def block(
             ,plot_empty
             ,xtick_labels
             ,ytick_labels
-            ,ylim
-            ,ind_label)
+            ,xlim=xlim
+            ,ylim=ylim
+            ,ind_label=ind_label)
 
     return(ax)
 
@@ -210,9 +205,10 @@ def finishblock(
         ,ylabel=None
         ,title=None
         ,plot_empty=False
-        ,xtick_labels=True
+        ,xtick_labels=False
         ,ytick_labels=False
         ,ylim=(-0.05,1.05)
+        ,xlim=(-0.05,1.05)
         ,ind_label=True):
 
     global ctr
@@ -222,11 +218,14 @@ def finishblock(
     ax.yaxis.set_ticks_position("left")
     ax.xaxis.set_ticks_position("bottom")
 
+    print(xlim)
+    print(ylim)
+
     # do axis labeling
     ax.xaxis.set_minor_locator(AutoMinorLocator(4))
     ax.yaxis.set_minor_locator(AutoMinorLocator(4))
     ax.set_ylim(ylim)
-    ax.set_xlim((-0.05,1.05))
+    ax.set_xlim(xlim)
 
     if type(ylabel) == type("string"):
         ax.set_ylabel(ylabel=ylabel)
@@ -240,17 +239,17 @@ def finishblock(
     if not ytick_labels:
         ax.yaxis.set_ticklabels([])
    
-    if ind_label:
-        ax.set_title(loc="left", 
-                label=string.ascii_uppercase[ctr], 
-                position=(0.0,1.02))
+#    if ind_label:
+#        ax.set_title(loc="left", 
+#                label=string.ascii_uppercase[ctr], 
+#                position=(0.0,1.02))
 
     ctr += 1
     
     if title is not None: 
         ax.set_title(
                 label=title, 
-                position=(0.5,1.02))
+                position=(0.9,0.1))
 
 
     return(ax)
@@ -259,10 +258,76 @@ def finishblock(
 # read in the data, where helping is conditional
 data = pd.read_csv("../../data/summary_stress_autocorr.csv", sep=";")
 
+cue_NP = []#list(data["cue_NP"].unique())
+cue_P = [] #list(data["cue_P"].unique())
+
+for cueNP_i in cue_NP:
+    for cueP_i in cue_P:
+
+        # initialize the figure
+        fig = plt.figure(figsize=(30, 30))
+
+
+        sp2np = [ 0, 0.1, 0.2, 0.3, 0.4 ] #list(data["sP2NP_2"].unique())
+        snp2p = [ 0, 0.1, 0.2, 0.3, 0.4 ]#list(data["sNP2P_2"].unique())
+        sp2np.sort()
+        snp2p.sort()
+
+        # set the graph's grid
+        # with corresponding widths and heights
+        widths = [ 1 for val in sp2np ]
+        heights = [ 1 for val in snp2p ]
+
+
+        # start gridspec object
+        gs = gridspec.GridSpec(
+                len(heights), 
+                len(widths), 
+                width_ratios=widths, 
+                height_ratios=heights)
+
+        for sp in sp2np:
+            for snp in snp2p:
+
+                data_subset = data[(data["sP2NP_2"] == sp)
+                        & (data["sNP2P_2"] == snp) 
+                        & (data["cue_P"] == cueP_i)
+                        & (data["cue_NP"] == cueNP_i)
+                        ]
+
+                print(str(sp) + " " + str(snp))
+
+                block(
+                    gs
+                    ,row=sp2np.index(sp)
+                    ,col=snp2p.index(snp)
+                    ,data = data_subset
+                    ,xtick_labels = sp == max(sp2np)
+                    ,ytick_labels = snp == max(snp2p)
+                    ,title = r"$s_{\mathrm{p} \rightarrow \mathrm{np}} = " + str(sp) + "\n"
+                            + r"$s_{\mathrm{np} \rightarrow \mathrm{p}} = " + str(snp)
+                    )
+
+        format = "pdf"
+        graphname = "stress_curve_autocorrelation_cueNPi_" + str(cueNP_i) + "_cuePi" + str(cueP_i)
+        graphname_pdf = graphname + ".pdf"
+        graphname_svg = graphname + ".svg"
+        plt.savefig(
+                graphname_pdf 
+                ,format="pdf"
+                ,bbox_inches="tight"
+        #        ,bbox_extra_artists=(x_label_txt,the_text,)
+                ,transparent=True)
+
+        if format == "svg":
+            subprocess.call(["pdf2svg",graphname_pdf,graphname_svg])
+
+
+        plt.close()
+
 
 # initialize the figure
-fig = plt.figure(figsize=(5, 5))
-
+fig = plt.figure(figsize=(6, 6))
 # set the graph's grid
 # with corresponding widths and heights
 widths = [ 1 ]
@@ -276,18 +341,41 @@ gs = gridspec.GridSpec(
         width_ratios=widths, 
         height_ratios=heights)
 
-print(data.columns.values)
-print(list(data["sP2NP_2"].unique()))
-print(list(data["sNP2NP_2"].unique()))
+
+sp = 0.1
+snp = 0.1
+cueP_i = 0.8
+cueNP_i = 0.2
+
+data_subset = data[(data["sP2NP_2"] == sp)
+        & (data["sNP2P_2"] == snp) 
+        & (data["cue_P"] == cueP_i)
+        & (data["cue_NP"] == cueNP_i)
+        ]
 
 
-data_subset = data[
-        (data["sP2NP_2"] == 0.1)
-        & (data["sNP2NP_2"] == 0.1) ]
+assert(data_subset.shape[0] > 0)
+
+print(str(sp) + " " + str(snp))
 
 block(
     gs
     ,row=0
     ,col=0
     ,data = data_subset
+    ,xtick_labels =True
+    ,ytick_labels = True
+    ,title = r"$s_{\mathrm{p} \rightarrow \mathrm{np}} = " + str(sp) + "\n"
+            + r"$s_{\mathrm{np} \rightarrow \mathrm{p}} = " + str(snp)
     )
+
+format = "pdf"
+graphname = "stress_curve_autocorrelation_cueNPi_" + str(cueNP_i) + "_cuePi" + str(cueP_i)
+graphname_pdf = graphname + ".pdf"
+graphname_svg = graphname + ".svg"
+plt.savefig(
+        graphname_pdf 
+        ,format="pdf"
+        ,bbox_inches="tight"
+#        ,bbox_extra_artists=(x_label_txt,the_text,)
+        ,transparent=True)
