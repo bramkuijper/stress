@@ -68,6 +68,7 @@ def find_parameter_linenum(filename):
 #########################################
 #           read in the data
 #########################################
+
 line_num_params = find_parameter_linenum(sys.argv[1])
 
 # get the data
@@ -86,7 +87,7 @@ fig = plt.figure(figsize=(10,15))
 # generate the grid of the graph
 # see: 
 widths = [ 1 ]
-heights = [ 1, 1, 1, 1, 1, 1]
+heights = [ 1, 1, 1, 1, 1, 1, 1]
 numrows = len(heights)
 numcols  = len(widths)
 
@@ -253,6 +254,8 @@ var_stress_influx = float(dat["var_stress_influx"][-1:])
 
 nrep = 2000
 
+print(zt)
+
 for i in range(0,nrep):
 
     zt_val = np.random.normal(
@@ -315,10 +318,19 @@ ax.plot(
         ,color="black")
 
 
-ax.set_ylim(0, zt + 4*var_zt)
+ax.set_ylim(0, zt*2)
 
 ax.set_ylabel(r"Stress response" + "\n" + r"to stimulus at $t=10$")
 ax.set_xlabel(r"Time")
+
+
+ax = plt.subplot(gs[6,0])
+
+ax.plot(
+        dat["generation"],
+        dat["var_feedback"],
+        label="Feedback")
+
 
 format = "pdf"
 
@@ -326,6 +338,8 @@ filename = os.path.join(
         os.path.dirname(sys.argv[1]),
         "graph_" + os.path.basename(sys.argv[1]) + "." + format
         )
+
+print(type(filename))
 
 plt.savefig(
         fname=filename,
