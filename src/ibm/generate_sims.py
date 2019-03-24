@@ -11,10 +11,13 @@ sdmu = [ 0.02]
 #s_P2NP = [[0.01,0.02],[ 0.04,0.08], [ 0.1,0.2]]
 #s_NP2P = [[0.005,0.01], [ 0.02,0.04], [ 0.05, 0.1]]
 
-#s_P2NP_pre = list(np.arange(0,0.5,0.05))
-#s_NPP2P_pre = list(np.arange(0,0.5,0.05))
+s_P2NP_pre = list(np.arange(0,0.5,0.05))
+s_NPP2P_pre = list(np.arange(0,0.5,0.05))
+
+
 s_P2NP_pre = [ 0.1 ]
 s_NP2P_pre = [ 0.05 ]
+
 
 s_P2NP = []
 s_NP2P = []
@@ -28,11 +31,8 @@ for s1_i in s_NP2P_pre:
 
 s_12 = [[ 0.1,0.1]]
 
-#cue_P = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8 ]
-#cue_NP = [ 0, 0.2, 0.4, 0.6 ]
-cue_P = [0.5]
-cue_NP = [0.08]
-
+cue_P = [ 0.5 ] #[ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8 ]
+cue_NP = [ 0.08 ] #[ 0, 0.2, 0.4, 0.6 ]
 
 s0 = [ 0.5 ]
 ad = [ 0.5 ]
@@ -41,11 +41,11 @@ aP = [ 0.5 ]
 dmax = [ 100 ]
 zmax = [ 100 ]
 
-damage_decay = [ 0.9 ]
-damage_due_to_hormone = [ 1.0 ]
+damage_decay = [ 0.25 ]
+damage_due_to_hormone = [ 10.0 ]
 
 # number of replicates
-nrep = 3
+nrep = 1
 
 ctr = 0
 
@@ -54,13 +54,6 @@ init_stress_influx = 10.0
 init_influx = 2.0
 
 exe = "./xstress"
-
-bg = True
-
-bgstring = ""
-
-if bg:
-    bgstring = " &"
 
 # make all permutations of parameter combinations
 for rep_i in range(0,nrep):
@@ -107,5 +100,4 @@ for rep_i in range(0,nrep):
                                                                             + str(zmax_i) + " " 
                                                                             + str(r_i) + " " 
                                                                             + str(u_i) + " " 
-                                                                            + bgstring
                                                                             )

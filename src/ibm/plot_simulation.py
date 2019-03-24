@@ -68,7 +68,6 @@ def find_parameter_linenum(filename):
 #########################################
 #           read in the data
 #########################################
-
 line_num_params = find_parameter_linenum(sys.argv[1])
 
 # get the data
@@ -254,8 +253,6 @@ var_stress_influx = float(dat["var_stress_influx"][-1:])
 
 nrep = 2000
 
-print(zt)
-
 for i in range(0,nrep):
 
     zt_val = np.random.normal(
@@ -318,19 +315,23 @@ ax.plot(
         ,color="black")
 
 
-ax.set_ylim(0, zt*2)
+ax.set_ylim(0, zt + 4*var_zt)
 
 ax.set_ylabel(r"Stress response" + "\n" + r"to stimulus at $t=10$")
 ax.set_xlabel(r"Time")
 
+ax.tick_params(
+        axis="x",
+        which="both",
+        labelbottom=False)
 
 ax = plt.subplot(gs[6,0])
 
-ax.plot(
-        dat["generation"],
-        dat["var_feedback"],
-        label="Feedback")
+ax.plot(dat["generation"]
+        ,dat["prop_dead"])
 
+ax.set_ylabel(r"Prob mort")
+        
 
 format = "pdf"
 
