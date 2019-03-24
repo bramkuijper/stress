@@ -550,7 +550,7 @@ void survive()
         }
 
         // add to cumulative distribution of damage
-        damage_cumul[numP + ind_i] = sum_damage + (1.0 - pow(P[ind_i].damage/dmax, ad));
+        damage_cumul[numP + ind_i] = sum_damage + (1.0 - pow(NP[ind_i].damage/dmax, ad));
         sum_damage = damage_cumul[ind_i];
     }
 
