@@ -9,6 +9,7 @@ import re, string, sys, os, math
 import numpy as np
 import subprocess
 import matplotlib
+import seaborn as sns
 matplotlib.use('pgf')
 #matplotlib.use('Agg')
 
@@ -44,7 +45,10 @@ matplotlib.rcParams.update(pgf_with_custom_preamble)
 
 ctr = 0
 
-# make stress iterations for this row of the data.frame
+# so in order to see what is going 
+# we use the evolved stress response (including variance)
+# and iterate it for n=max_time time steps
+# while giving a stimulus at time = 10
 def stress_iterations(row, max_time=30, nrep=100):
 
     # get hormone level
@@ -218,9 +222,6 @@ def finishblock(
     ax.yaxis.set_ticks_position("left")
     ax.xaxis.set_ticks_position("bottom")
 
-    print(xlim)
-    print(ylim)
-
     # do axis labeling
     ax.xaxis.set_minor_locator(AutoMinorLocator(4))
     ax.yaxis.set_minor_locator(AutoMinorLocator(4))
@@ -258,8 +259,8 @@ def finishblock(
 # read in the data, where helping is conditional
 data = pd.read_csv("../../data/summary_stress_autocorr.csv", sep=";")
 
-cue_NP = []#list(data["cue_NP"].unique())
-cue_P = [] #list(data["cue_P"].unique())
+cue_NP = list(data["cue_NP"].unique())
+cue_P = list(data["cue_P"].unique())
 
 for cueNP_i in cue_NP:
     for cueP_i in cue_P:
@@ -325,6 +326,8 @@ for cueNP_i in cue_NP:
 
         plt.close()
 
+
+sys.exit()
 
 # initialize the figure
 fig = plt.figure(figsize=(6, 6))

@@ -149,6 +149,9 @@ string filename("sim_stress");
 string filename_new(create_filename(filename));
 ofstream DataFile(filename_new.c_str());  
 
+string filename_iters(filename_new + "iters");
+ofstream IterFile(filename_iters.c_str());  
+
 // initialize simulations from command line arguments
 void init_arguments(int argc, char *argv[])
 {
@@ -861,6 +864,59 @@ void write_data_headers()
         << endl;
 }
 
+// iterate individuals for 30 timesteps 
+// to plot the stress response curve for
+// different individuals
+void write_simple_iter()
+{
+    // number of individuals
+    int nrep = 100;
+    int tmax = 31;
+
+    double stress, stress_tplus1;
+
+    Individual ind;
+
+    // calculate freq of individuals in 
+    // predator vs nonpredator patch
+    double freq_p = (double) numP / (numP + numNP);
+
+    IterFile << "time;individual;stress;" << endl;
+
+    // sample individuals
+    for (int ind_i = 0; ind_i < nrep; ++ind_i)
+    {
+        if (gsl_rng_uniform(rng_r) < freq_p)
+        {
+            ind = P[gsl_rng_uniform_int(rng_r, numP)];
+        }
+        else
+        {
+            ind = NP[gsl_rng_uniform_int(rng_r, numNP)];
+        }
+
+        stress = ind.hormone;
+        stress_tplus1 = 0.0;
+
+        // iterate the stress response for this individual
+        for (int timestep = 0; timestep < tmax; ++timestep)
+        {
+            stress_tplus1 = 0.5 * (ind.influx[0] + ind.influx[1]) 
+                                + (1.0 - 0.5 * (ind.feedback[0] + ind.feedback[1]))
+                                * stress;
+            
+            if (timestep == 10)
+            {
+                stress_tplus1 += 0.5 * (ind.stress_influx[0] + ind.stress_influx[1]);
+            }
+
+            stress = stress_tplus1;
+
+            IterFile << timestep << ";" << ind_i << ";" << stress << ";" << endl;
+        }
+    }
+}
+
 
 // the guts of the code
 int main(int argc, char ** argv)
@@ -889,6 +945,8 @@ int main(int argc, char ** argv)
 		}
 	}
 
+    // iterate the stress response curves for a subset of individuals
+    write_simple_iter();
     // finally write some params
 	write_parameters();
 }
