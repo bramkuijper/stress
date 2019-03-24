@@ -65,15 +65,32 @@ def find_parameter_linenum(filename):
     return(len(fl))
 
 
+def check_params_first(file):
+
+    f = open(file)
+    fl = f.readlines()
+    f.close()
+
+    for linenum, line in enumerate(fl):
+
+        if re.search(r"^generation", line) is not None:
+
+            return(linenum)
+
 #########################################
 #           read in the data
 #########################################
+params_at_start = check_params_first(sys.argv[1])
+
+assert(params_at_start is not None)
+
 line_num_params = find_parameter_linenum(sys.argv[1])
 
 # get the data
 dat = pd.read_csv(sys.argv[1],
         nrows=line_num_params-1,
         sep=';',
+        skiprows=params_at_start,
         index_col=False)
 
 #########################################

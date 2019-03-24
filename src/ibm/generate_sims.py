@@ -15,7 +15,7 @@ s_P2NP_pre = list(np.arange(0,0.5,0.05))
 s_NP2P_pre = list(np.arange(0,0.5,0.05))
 
 
-s_P2NP_pre = [ 0.1 ]
+s_P2NP_pre = [ 0.05 ]
 s_NP2P_pre = [ 0.05 ]
 
 
