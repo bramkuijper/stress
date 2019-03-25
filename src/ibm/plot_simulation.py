@@ -332,7 +332,7 @@ ax.plot(
         ,color="black")
 
 
-ax.set_ylim(0, zt + 4*var_zt)
+#ax.set_ylim(0, zt + 4*var_zt)
 
 ax.set_ylabel(r"Stress response" + "\n" + r"to stimulus at $t=10$")
 ax.set_xlabel(r"Time")

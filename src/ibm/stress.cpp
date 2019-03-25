@@ -332,6 +332,9 @@ void create_offspring(
             :
             father.feedback[gsl_rng_uniform_int(rng_r,2)]; // father inherits
 
+        assert(kid.feedback[allele_i] >= 0.0);
+        assert(kid.feedback[allele_i] <= 1.0);
+
         mutate_bound(
                 kid.feedback[allele_i],
                 mu_feedback,
@@ -664,7 +667,9 @@ void reproduce_check()
         }
         else
         {
-            father_ind = NP[father];
+            assert(father - numP >= 0);
+            assert(father - numP < numNP);
+            father_ind = NP[father - numP];
         }
         
         
@@ -676,7 +681,9 @@ void reproduce_check()
         }
         else
         {
-            mother_ind = NP[mother];
+            assert(mother - numP >= 0);
+            assert(mother - numP < numNP);
+            mother_ind = NP[mother - numP];
         }
         
         // create the offspring
