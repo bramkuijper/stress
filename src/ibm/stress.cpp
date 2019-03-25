@@ -269,7 +269,6 @@ void init_population()
     // different seeds)
     // to initialize the random seed
 	seed = get_nanoseconds();
-    
     // set up the random number generators
     // (from the gnu gsl library)
     gsl_rng_env_setup();
@@ -333,6 +332,9 @@ void create_offspring(
             :
             father.feedback[gsl_rng_uniform_int(rng_r,2)]; // father inherits
 
+        assert(kid.feedback[allele_i] >= 0.0);
+        assert(kid.feedback[allele_i] <= 1.0);
+
         mutate_bound(
                 kid.feedback[allele_i],
                 mu_feedback,
@@ -378,7 +380,7 @@ void create_offspring(
 // - its current hormone level
 double pkill(double const hormone_level)
 {
-    double kill_prob = 1.0 - pow(hormone_level/zmax, aP);
+    double kill_prob = 0.99 * (1.0 - pow(hormone_level/zmax, aP)) + 0.01;
 
     return(kill_prob);
 }
@@ -596,6 +598,123 @@ void survive()
 //    }
 //}
 
+
+void reproduce_check()
+{
+    // number of offspring to be made
+    int Noffspring = Npop - numP - numNP;
+
+    assert(Noffspring >= 0);
+    assert(Noffspring <= Npop);
+
+    if (Noffspring == 0)
+    {
+        return;
+    }
+
+    Individual kids[Noffspring];
+
+    double cumul_deviate = 0;
+
+    int father, mother;
+
+    if (numP < 1 && numNP < 1)
+    {
+        write_parameters();
+        exit(1);
+    }   
+
+    for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
+    {
+        father = gsl_rng_uniform_int(rng_r,numP + numNP);
+        mother = gsl_rng_uniform_int(rng_r,numP + numNP);
+;
+        // first obtain father from cumul dist
+        cumul_deviate = gsl_rng_uniform(rng_r) * sum_damage;
+
+        for (int ind_i = 0; ind_i < numP + numNP; ++ind_i)
+        {
+            if (cumul_deviate < damage_cumul[ind_i])
+            {
+                father = ind_i;
+                break;
+            }
+        }
+        
+        // then obtain father from cumul dist
+        cumul_deviate = gsl_rng_uniform(rng_r) * sum_damage;
+
+        for (int ind_i = numP; ind_i < numP + numNP; ++ind_i)
+        {
+            if (cumul_deviate < damage_cumul[ind_i])
+            {
+                mother = ind_i;
+                break;
+            }
+        }
+
+        assert(father >= 0);
+        assert(father < numP + numNP);
+        
+        assert(mother >= 0);
+        assert(mother < numP + numNP);
+        
+        Individual father_ind;
+
+        if (father < numP)
+        {
+            father_ind = P[father];
+        }
+        else
+        {
+            assert(father - numP >= 0);
+            assert(father - numP < numNP);
+            father_ind = NP[father - numP];
+        }
+        
+        
+        Individual mother_ind;
+
+        if (mother < numP)
+        {
+            mother_ind = P[mother];
+        }
+        else
+        {
+            assert(mother - numP >= 0);
+            assert(mother - numP < numNP);
+            mother_ind = NP[mother - numP];
+        }
+        
+        // create the offspring
+        create_offspring(mother_ind, father_ind, kids[kid_i]);
+    }
+    
+    // now distribute kids over the environments
+    
+    // calculate ratio of the P envt relative to the other envts
+    double ratio_P_NP_envt = s_NP_2_P[current_world] / 
+        (s_P_2_NP[current_world] + s_NP_2_P[current_world]);
+
+    assert(ratio_P_NP_envt >= 0);
+    assert(ratio_P_NP_envt <= 1);
+
+    // now start redistributing kids
+    for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
+    {
+        // kid to envt P
+        if (gsl_rng_uniform(rng_r) < ratio_P_NP_envt)
+        {
+            P[numP++] = kids[kid_i];
+        }
+        else
+        {
+            NP[numNP++] = kids[kid_i];
+        }
+    }
+
+    assert(numP + numNP == Npop);
+}
 
 
 // now reproduce
@@ -923,6 +1042,9 @@ int main(int argc, char ** argv)
 {
 	init_arguments(argc, argv);
 	init_population();
+    
+    // finally write some params
+	write_parameters();
 
     // write headers to the datafile
 	write_data_headers();
@@ -934,7 +1056,7 @@ int main(int argc, char ** argv)
 
 		survive();
 
-		reproduce();
+		reproduce_check();
         
         do_stats = generation % skip == 0;
 
