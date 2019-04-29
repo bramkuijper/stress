@@ -985,14 +985,14 @@ void write_data_headers()
         << endl;
 }
 
-// iterate individuals for 30 timesteps 
+// iterate individuals for 2000 timesteps 
 // to plot the stress response curve for
 // different individuals
 void write_simple_iter()
 {
     // number of individuals
     int nrep = 100;
-    int tmax = 31;
+    int tmax = 2000;
 
     double stress, stress_tplus1;
 
@@ -1026,7 +1026,7 @@ void write_simple_iter()
                                 + (1.0 - 0.5 * (ind.feedback[0] + ind.feedback[1]))
                                 * stress;
             
-            if (timestep == 10)
+            if (timestep == tmax - 100)
             {
                 stress_tplus1 += 0.5 * (ind.stress_influx[0] + ind.stress_influx[1]);
             }
