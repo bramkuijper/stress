@@ -413,8 +413,6 @@ void environmental_switching()
         }
     }
 
-    assert(numP == 0);
-
     for (int ind_i = 0; ind_i < numNP; ++ind_i)
     {
         if (gsl_rng_uniform(rng_r)  < s_NP_2_P[current_world])
