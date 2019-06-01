@@ -996,7 +996,7 @@ void write_simple_iter()
     // number of individuals
     int nrep = 100;
     int tmax = 500;
-    int tstress = tmax - 100
+    int tstress = tmax - 100;
 
     double stress, stress_tplus1;
 
