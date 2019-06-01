@@ -64,6 +64,9 @@ double mu_stress_influx = 0.0;
 double mu_influx = 0.0;
 double sdmu = 0.0;
 
+// background mortality
+double mort_background = 0.0;
+
 // environmental switching parameters
 // indices here indicate world 1
 // and world 2, to include development
@@ -177,6 +180,7 @@ void init_arguments(int argc, char *argv[])
     zmax  = atof(argv[20]);
     r = atof(argv[21]);
     u = atof(argv[22]);
+    mort_background = atof(argv[23]);
 }
 
 // mutation according to a continuum of alleles model
@@ -251,6 +255,7 @@ void write_parameters()
 		<< "s0;" << s0 << ";"<< endl
 		<< "ad;" << ad << ";"<< endl
 		<< "aP;" << aP << ";"<< endl
+		<< "mort_background;" << mort_background << ";"<< endl
 		<< "dmax;" << dmax << ";"<< endl
 		<< "zmax;" << zmax << ";"<< endl
 		<< "r;" << r << ";"<< endl
@@ -380,7 +385,7 @@ void create_offspring(
 // - its current hormone level
 double pkill(double const hormone_level)
 {
-    double kill_prob = 0.99 * (1.0 - pow(hormone_level/zmax, aP)) + 0.01;
+    double kill_prob = mort_background + (1.0 - mort_background) * (1.0 - pow(hormone_level/zmax, aP));
 
     return(kill_prob);
 }

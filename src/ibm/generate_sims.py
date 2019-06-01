@@ -30,11 +30,11 @@ for s1_i in s_NP2P_pre:
 
 s_12 = [[ 0.1,0.1]]
 
-cue_P = [ 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
-cue_NP = [ 0.0, 0.05, 0.1, 0.2, 0.3, 0.4 ]
+#cue_P = [ 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
+#cue_NP = [ 0.0, 0.2, 0.3, 0.4 ]
 
-#cue_P = [ 0.8 ]
-#cue_NP = [ 0.4 ]
+cue_P = [ 0.8 ]
+cue_NP = [ 0.4 ]
 
 s0 = [ 0.5 ]
 ad = [ 0.5 ]
@@ -47,7 +47,7 @@ damage_decay = [ 0.9 ]
 damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
-nrep = 3
+nrep = 1
 
 ctr = 0
 
