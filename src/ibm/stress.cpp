@@ -12,17 +12,15 @@
 #include <cmath>
 #include <algorithm>
 #include <cassert>
+#include <cfloat>
 #include <vector>
 #include <random>
 
-// random number generation, via the GNU scientific library
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
 
 // various functions, such as unique filename creation
 // which helps when running multiple instances of simulation
 // in the same folder
-#include "auxiliary.h"
+#include "auxiliary.hpp"
 
 //#define NDEBUG
 //
@@ -33,10 +31,14 @@
 using namespace std;
 
 
-// gnu scientific library random number generator initialization
-// http://www.gnu.org/software/gsl/ 
-gsl_rng_type const * T; // gnu scientific library rng type
-gsl_rng *rng_r; // gnu scientific rng 
+// set up the random number generator
+// set random seed etc
+int seed = get_nanoseconds();
+mt19937 rng_r{static_cast<unsigned int>(seed)};
+uniform_real_distribution<> uniform(0.0,1.0);
+
+// for meiotic segregation
+bernoulli_distribution random_allele(0.5);
 
 
 // number of generations
@@ -75,6 +77,7 @@ double mort_background = 0.0;
 //
 // switch rate from P to NP
 double s_P_2_NP[2] = {0.0,0.0};
+
 // switch rate from NP to P
 double s_NP_2_P[2] = {0.0,0.0};
 
@@ -94,10 +97,6 @@ double cue_NP = 0.0;
 
 // baseline survival rate
 double s0 = 0;
-
-// store the random seed
-// to 'replay' the simulation afterwards
-unsigned seed = 0;
 
 double ad = 0;
 double aP = 0;
@@ -147,14 +146,6 @@ Population P, NP, Pnew, NPnew;
 double damage_cumul[Npop];
 double sum_damage;
 
-// generate a unique filename for the output file
-string filename("sim_stress");
-string filename_new(create_filename(filename));
-ofstream DataFile(filename_new.c_str());  
-
-string filename_iters(filename_new + "iters");
-ofstream IterFile(filename_iters.c_str());  
-
 // initialize simulations from command line arguments
 void init_arguments(int argc, char *argv[])
 {
@@ -183,56 +174,36 @@ void init_arguments(int argc, char *argv[])
     mort_background = atof(argv[23]);
 }
 
+// apply boundaries to a certain value
+void clamp(double &val, double const min, double const max)
+{
+    if (val > max)
+    {
+        val = max;
+    } 
+    else if (val < min)
+    {
+        val = min;
+    }
+}
+
 // mutation according to a continuum of alleles model
 void mutate(
         double &G, 
         double const mu, 
         double const sdmu)
 {
-    G += gsl_rng_uniform(rng_r) < mu ? gsl_ran_gaussian(rng_r, sdmu) : 0;
-}
 
-// mutation but with a lower bound
-void mutate_bound_lower(
-        double &G, 
-        double const mu, 
-        double const sdmu, 
-        double const bound_lower)
-{
-    G += gsl_rng_uniform(rng_r) < mu ? gsl_ran_gaussian(rng_r, sdmu) : 0;
-
-    // set the bound
-    if (G < bound_lower)
+    if (uniform(rng_r) < mu)
     {
-        G = bound_lower;
-    }
-}
-
-// mutation but within lower and upper bounds
-void mutate_bound(
-        double &G, 
-        double const mu, 
-        double const sdmu, 
-        double const bound_lower,
-        double const bound_upper)
-{
-    G += gsl_rng_uniform(rng_r) < mu ? 
-        gsl_ran_gaussian(rng_r, sdmu) : 0;
-
-    // set the bound
-    if (G < bound_lower)
-    {
-        G = bound_lower;
-    }
-    else if (G > bound_upper)
-    {
-        G = bound_upper;
+        normal_distribution<> allele_dist(0.0, sdmu);
+        G += allele_dist(rng_r);
     }
 }
 
 // write the parameters 
 // (typically at the end of the output file)
-void write_parameters()
+void write_parameters(ofstream &DataFile)
 {
 	DataFile << endl
 		<< endl
@@ -269,17 +240,6 @@ void write_parameters()
 // and doing some other stuff (e.g., random seed)
 void init_population()
 {
-    // get the timestamp (using nanosecs,
-    // so that two concurrent simulations still have
-    // different seeds)
-    // to initialize the random seed
-	seed = get_nanoseconds();
-    // set up the random number generators
-    // (from the gnu gsl library)
-    gsl_rng_env_setup();
-    T = gsl_rng_default;
-    rng_r = gsl_rng_alloc(T);
-    gsl_rng_set(rng_r, seed);
 
     // set counters to 0
     numP = 0;
@@ -306,7 +266,7 @@ void init_population()
         // overall frequency in the first world. This does not really matter
         // too much, as I expect frequencies of individuals in either
         // environment to rapidly attain their ecological equilibria
-        newInd.envt_is_P = gsl_rng_uniform(rng_r) < s_P_2_NP[0] / 
+        newInd.envt_is_P = uniform(rng_r) < s_P_2_NP[0] / 
             (s_NP_2_P[0] + s_P_2_NP[0]);
 
         if (newInd.envt_is_P)
@@ -317,6 +277,9 @@ void init_population()
         {
             NP[numNP++] = newInd;
         }
+
+        assert(numP <= Npop);
+        assert(numNP <= Npop);
     } 
 
     current_world = false;
@@ -333,44 +296,46 @@ void create_offspring(
     {
         kid.feedback[allele_i] = 
             allele_i < 1 ? 
-            mother.feedback[gsl_rng_uniform_int(rng_r,2)] // mother inherits 
+            mother.feedback[random_allele(rng_r)] // mother inherits 
             :
-            father.feedback[gsl_rng_uniform_int(rng_r,2)]; // father inherits
+            father.feedback[random_allele(rng_r)]; // father inherits
 
         assert(kid.feedback[allele_i] >= 0.0);
         assert(kid.feedback[allele_i] <= 1.0);
 
-        mutate_bound(
+        mutate(
                 kid.feedback[allele_i],
                 mu_feedback,
-                sdmu,
-                0.0,
-                1.0);
+                sdmu);
+
+        clamp(kid.feedback[allele_i], 0.0, 1.0);
 
         kid.stress_influx[allele_i] = 
             allele_i < 1 ? 
-            mother.stress_influx[gsl_rng_uniform_int(rng_r,2)] 
+            mother.stress_influx[random_allele(rng_r)] 
             :
-            father.stress_influx[gsl_rng_uniform_int(rng_r,2)];
+            father.stress_influx[random_allele(rng_r)];
 
-        mutate_bound_lower(
+        mutate(
                 kid.stress_influx[allele_i],
                 mu_stress_influx, 
-                sdmu,
-                0.0
+                sdmu
                 );
+
+        clamp(kid.feedback[allele_i], 0.0, DBL_MAX);
 
         kid.influx[allele_i] = 
             allele_i < 1 ? 
-            mother.influx[gsl_rng_uniform_int(rng_r,2)] 
+            mother.influx[random_allele(rng_r)] 
             :
-            father.influx[gsl_rng_uniform_int(rng_r,2)];
+            father.influx[random_allele(rng_r)];
 
-        mutate_bound_lower(
+        mutate(
                 kid.influx[allele_i],
                 mu_influx, 
-                sdmu,
-                0.0);
+                sdmu);
+        
+        clamp(kid.feedback[allele_i], 0.0, DBL_MAX);
     } // inheritance done
 
     // set hormone level and damage to their baseline values
@@ -406,7 +371,7 @@ void environmental_switching()
 
     for (int ind_i = 0; ind_i < numP; ++ind_i)
     {
-        if (gsl_rng_uniform(rng_r)  < s_P_2_NP[current_world])
+        if (uniform(rng_r)  < s_P_2_NP[current_world])
         {
             // copy individual to NPnew stack which is a 
             // placeholder for all individuals who go to NP
@@ -426,7 +391,7 @@ void environmental_switching()
 
     for (int ind_i = 0; ind_i < numNP; ++ind_i)
     {
-        if (gsl_rng_uniform(rng_r)  < s_NP_2_P[current_world])
+        if (uniform(rng_r)  < s_NP_2_P[current_world])
         {
             // copy individual to NPnew stack which is a 
             // placeholder for all individuals who go to NP
@@ -453,7 +418,7 @@ void environmental_switching()
 
 
 // survival of individuals
-void survive()
+void survive(ofstream &datafile)
 {
     sum_damage = 0.0;
 
@@ -470,7 +435,7 @@ void survive()
              * P[ind_i].hormone;
         
         // individual gets predator cue 
-        if (gsl_rng_uniform(rng_r) < cue_P)
+        if (uniform(rng_r) < cue_P)
         {
             // gets cue, spike the hormone level
             P[ind_i].hormone += 
@@ -491,7 +456,7 @@ void survive()
         }
        
         // OK, did not survive dependent on the level of stress & damage
-        if (gsl_rng_uniform(rng_r) < 
+        if (uniform(rng_r) < 
                 pkill(P[ind_i].hormone, true))
         {
             ++death_t;
@@ -534,7 +499,7 @@ void survive()
              * NP[ind_i].hormone;
 
         // individual gets predator cue 
-        if (gsl_rng_uniform(rng_r) < cue_NP)
+        if (uniform(rng_r) < cue_NP)
         {
             // gets cue, spike the hormone level
             NP[ind_i].hormone += 
@@ -555,7 +520,7 @@ void survive()
         }
 
         // OK, did not survive dependent on the level of stress & damage
-        if (gsl_rng_uniform(rng_r) < 
+        if (uniform(rng_r) < 
                 pkill(NP[ind_i].hormone, false))
         {
             ++death_t;
@@ -604,12 +569,12 @@ void survive()
     if (numP + numNP == 0)
     {
         cout << "extinct" << endl;
-        write_parameters();
+        write_parameters(datafile);
         exit(1);
     }
 
     // see if we need to switch worlds
-    if (gsl_rng_uniform(rng_r) < s_12[current_world])
+    if (uniform(rng_r) < s_12[current_world])
     {
         current_world = !current_world;
     }
@@ -628,7 +593,7 @@ void survive()
 //    }
 //
 //    Individual kids[Noffspring];
-//    double sample = gsl_rng_uniform(rng_r) * sum_damage;
+//    double sample = uniform(rng_r) * sum_damage;
 //
 //    // now sample parents for each offspring
 //    for (int offspring_i = 0; offspring_i < Noffspring; ++offspring_i)
@@ -641,7 +606,7 @@ void survive()
 //}
 
 
-void reproduce_check()
+void reproduce_check(ofstream &datafile)
 {
     // number of offspring to be made
     int Noffspring = Npop - numP - numNP;
@@ -662,17 +627,19 @@ void reproduce_check()
 
     if (numP < 1 && numNP < 1)
     {
-        write_parameters();
+        write_parameters(datafile);
         exit(1);
     }   
 
+    uniform_int_distribution<int> random_parent(0, numP + numNP);
+
     for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
     {
-        father = gsl_rng_uniform_int(rng_r,numP + numNP);
-        mother = gsl_rng_uniform_int(rng_r,numP + numNP);
+        father = random_parent(rng_r);
+        mother = random_parent(rng_r);
 ;
         // first obtain father from cumul dist
-        cumul_deviate = gsl_rng_uniform(rng_r) * sum_damage;
+        cumul_deviate = uniform(rng_r) * sum_damage;
 
         for (int ind_i = 0; ind_i < numP + numNP; ++ind_i)
         {
@@ -684,7 +651,7 @@ void reproduce_check()
         }
         
         // then obtain father from cumul dist
-        cumul_deviate = gsl_rng_uniform(rng_r) * sum_damage;
+        cumul_deviate = uniform(rng_r) * sum_damage;
 
         for (int ind_i = numP; ind_i < numP + numNP; ++ind_i)
         {
@@ -745,7 +712,7 @@ void reproduce_check()
     for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
     {
         // kid to envt P
-        if (gsl_rng_uniform(rng_r) < ratio_P_NP_envt)
+        if (uniform(rng_r) < ratio_P_NP_envt)
         {
             P[numP++] = kids[kid_i];
         }
@@ -789,7 +756,7 @@ void reproduce()
     {
         // now add random numbers from the cumulative distribution to the list
         // of samples that need to be found in the cumulative distribution
-        cumul_dist_samples[parent_i] = gsl_rng_uniform(rng_r) * sum_damage;
+        cumul_dist_samples[parent_i] = uniform(rng_r) * sum_damage;
     }
 
     // sort cumulative samples from low to high
@@ -823,19 +790,11 @@ void reproduce()
 
     assert(cumul_counter >= Nparents);
 
-    // randomly shuffle parents
-    //
-    // first make sure shuffler has same seed as all the rest
-    std::mt19937 rng_std; 
-
-    // set the seed
-    rng_std.seed(seed);
-
     // now shuffle the female dispersers
     shuffle(
             parents.begin(),
             parents.end(),
-            rng_std);
+            rng_r);
 
     for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
     {
@@ -890,7 +849,7 @@ void reproduce()
     for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
     {
         // kid to envt P
-        if (gsl_rng_uniform(rng_r) < ratio_P_NP_envt)
+        if (uniform(rng_r) < ratio_P_NP_envt)
         {
             P[numP++] = kids[kid_i];
         }
@@ -905,7 +864,7 @@ void reproduce()
 
 
 // write down summary statistics
-void write_data()
+void write_data(ofstream &DataFile)
 {
     double mean_feedback = 0;
     double ss_feedback = 0;
@@ -1007,7 +966,7 @@ void write_data()
 }
 
 // write the headers of a datafile
-void write_data_headers()
+void write_data_headers(ofstream &DataFile)
 {
     DataFile << "generation;" 
         << "freq_P" << ";"
@@ -1028,7 +987,7 @@ void write_data_headers()
 // iterate individuals for tmax timesteps 
 // to plot the stress response curve for
 // different individuals
-void write_simple_iter()
+void write_simple_iter(ofstream &IterFile)
 {
     // number of individuals
     int nrep = 100;
@@ -1045,17 +1004,23 @@ void write_simple_iter()
 
     IterFile << "time;individual;stress;" << endl;
 
+    uniform_int_distribution<int> random_from_P(0, numP - 1);
+    uniform_int_distribution<int> random_from_NP(0, numNP - 1);
+
     // sample individuals
     for (int ind_i = 0; ind_i < nrep; ++ind_i)
     {
-        if (gsl_rng_uniform(rng_r) < freq_p)
+        if (uniform(rng_r) < freq_p)
         {
-            ind = P[gsl_rng_uniform_int(rng_r, numP)];
+            ind = P[random_from_P(rng_r)];
         }
         else
         {
-            ind = NP[gsl_rng_uniform_int(rng_r, numNP)];
+            ind = NP[random_from_NP(rng_r)];
         }
+
+        assert(ind.feedback[0] >= 0.0);
+        assert(ind.feedback[1] <= 1.0);
 
         stress = 5.0;
         stress_tplus1 = 0.0;
@@ -1085,33 +1050,42 @@ int main(int argc, char ** argv)
 {
 	init_arguments(argc, argv);
 	init_population();
+
+    // generate a unique filename for the output file
+    string filename("sim_stress");
+    create_filename(filename);
+    ofstream DataFile(filename.c_str());  
+
+    string filename_iters(filename + "iters");
+    ofstream IterFile(filename_iters.c_str());  
+
     
-    // finally write some params
-	write_parameters();
+    // write some params
+	write_parameters(DataFile);
 
     // write headers to the datafile
-	write_data_headers();
+	write_data_headers(DataFile);
 
     // the main part of the code
 	for (generation = 0; generation <= NumGen; ++generation)
 	{
         environmental_switching();
 
-		survive();
+		survive(DataFile);
 
-		reproduce_check();
+		reproduce_check(DataFile);
         
         do_stats = generation % skip == 0;
 
         // print statistics every nth generation
         if (do_stats)
 		{
-			write_data();
+			write_data(DataFile);
 		}
 	}
 
     // iterate the stress response curves for a subset of individuals
-    write_simple_iter();
-    // finally write some params
-	write_parameters();
+    write_simple_iter(IterFile);
+//    // finally write some params
+//	write_parameters(DataFile);
 }

@@ -1,5 +1,5 @@
 xstress: stress.cpp
-	g++ -Wall -O3 -o xstress stress.cpp -lm -lrt -lgsl -lgslcblas
+	g++ -Wall -O3 -std=c++11 -o xstress stress.cpp 
 
 
 clean:
