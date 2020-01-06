@@ -1025,14 +1025,15 @@ void write_data_headers()
         << endl;
 }
 
-// iterate individuals for 2000 timesteps 
+// iterate individuals for tmax timesteps 
 // to plot the stress response curve for
 // different individuals
 void write_simple_iter()
 {
     // number of individuals
     int nrep = 100;
-    int tmax = 2000;
+    int tmax = 500;
+    int tstress = tmax - 100;
 
     double stress, stress_tplus1;
 
@@ -1056,7 +1057,7 @@ void write_simple_iter()
             ind = NP[gsl_rng_uniform_int(rng_r, numNP)];
         }
 
-        stress = ind.hormone;
+        stress = 5.0;
         stress_tplus1 = 0.0;
 
         // iterate the stress response for this individual
@@ -1066,7 +1067,7 @@ void write_simple_iter()
                                 + (1.0 - 0.5 * (ind.feedback[0] + ind.feedback[1]))
                                 * stress;
             
-            if (timestep == tmax - 100)
+            if (timestep == tmax - tstress)
             {
                 stress_tplus1 += 0.5 * (ind.stress_influx[0] + ind.stress_influx[1]);
             }
