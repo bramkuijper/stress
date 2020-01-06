@@ -132,7 +132,7 @@ which reflects transitions between two environments (here designated as
 \end_inset
 
 where 
-\begin_inset Formula $\bar{s}=s_{\mathrm{np}\rightarrow\mathrm{p}}+s_{\mathrm{p}\rightarrow\mathrm{np}}$
+\begin_inset Formula $s_{\mathrm{tot}}=s_{\mathrm{np}\rightarrow\mathrm{p}}+s_{\mathrm{p}\rightarrow\mathrm{np}}$
 \end_inset
 
 .
@@ -178,8 +178,8 @@ so that
 \begin_inset Formula 
 \begin{align*}
 \mathbf{P}^{d} & =\frac{1}{\bar{s}}\left[\begin{array}{cc}
-s_{\mathrm{np}\rightarrow\mathrm{p}}+\left(1-\bar{s}\right)^{d}s_{\mathrm{p}\rightarrow\mathrm{np}} & s_{\mathrm{p}\rightarrow\mathrm{np}}\left[\left(1-\bar{s}\right)^{d}-1\right]\\
-s_{\mathrm{np}\rightarrow\mathrm{p}}\left[\left(1-\bar{s}\right)^{d}-1\right] & s_{\mathrm{np}\rightarrow\mathrm{p}}\left(1-\bar{s}\right)^{d}+s_{\mathrm{p}\rightarrow\mathrm{np}}
+s_{\mathrm{np}\rightarrow\mathrm{p}}+\left(1-s_{\mathrm{tot}}\right)^{d}s_{\mathrm{p}\rightarrow\mathrm{np}} & s_{\mathrm{p}\rightarrow\mathrm{np}}\left[\left(1-s_{\mathrm{tot}}\right)^{d}-1\right]\\
+s_{\mathrm{np}\rightarrow\mathrm{p}}\left[\left(1-s_{\mathrm{tot}}\right)^{d}-1\right] & s_{\mathrm{np}\rightarrow\mathrm{p}}\left(1-s_{\mathrm{tot}}\right)^{d}+s_{\mathrm{p}\rightarrow\mathrm{np}}
 \end{array}\right].
 \end{align*}
 
@@ -198,9 +198,9 @@ We can then obtain the autocorrelation over
 \begin{align*}
 \mathbb{E}\left[X_{n}X_{n+d}\right] & =\sum_{i}\mathbb{E}\left[X_{n}X_{n+d}\mid X_{n}=i\right]\\
  & =\mathbb{E}\left[X_{n}X_{n+d}\mid X_{n}=-1\right]\mathbb{P}\left(X_{n}=-1\right)+\mathbb{E}\left[X_{n}X_{n+d}\mid X_{n}=1\right]\mathbb{P}\left(X_{n}=1\right)\\
- & =\mathbb{E}\left[X_{n+d}\mid X_{n}=1\right]\frac{s_{\mathrm{p}\rightarrow\mathrm{np}}}{\bar{s}}-\mathbb{E}\left[X_{n+d}\mid X_{n}=-1\right]\frac{s_{\mathrm{np}\rightarrow\mathrm{p}}}{\bar{s}}\\
- & =\left(-1\cdot P_{12}^{d}+1\cdot P_{22}^{d}\right)\frac{s_{\mathrm{p}\rightarrow\mathrm{np}}}{\bar{s}}-\left(-1\cdot P_{11}^{d}+1\cdot P_{21}^{d}\right)\frac{s_{\mathrm{np}\rightarrow\mathrm{p}}}{\bar{s}}\\
- & =\left(1-\bar{s}\right)^{d}
+ & =\mathbb{E}\left[X_{n+d}\mid X_{n}=1\right]\frac{s_{\mathrm{p}\rightarrow\mathrm{np}}}{s_{\mathrm{tot}}}-\mathbb{E}\left[X_{n+d}\mid X_{n}=-1\right]\frac{s_{\mathrm{np}\rightarrow\mathrm{p}}}{s_{\mathrm{tot}}}\\
+ & =\left(-1\cdot P_{12}^{d}+1\cdot P_{22}^{d}\right)\frac{s_{\mathrm{p}\rightarrow\mathrm{np}}}{s_{\mathrm{tot}}}-\left(-1\cdot P_{11}^{d}+1\cdot P_{21}^{d}\right)\frac{s_{\mathrm{np}\rightarrow\mathrm{p}}}{s_{\mathrm{tot}}}\\
+ & =\left(1-s_{\mathrm{tot}}\right)^{d}
 \end{align*}
 
 \end_inset

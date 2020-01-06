@@ -383,9 +383,15 @@ void create_offspring(
 // - whether or not individual is in environment P
 // - its level of damage
 // - its current hormone level
-double pkill(double const hormone_level)
+double pkill(double const hormone_level, bool envt_is_P)
 {
-    double kill_prob = mort_background + (1.0 - mort_background) * (1.0 - pow(hormone_level/zmax, aP));
+    double kill_prob = mort_background;
+   
+    // in predator environment, mortality is relative to hormone level
+    if (envt_is_P)
+    {
+        kill_prob += (1.0 - mort_background) * (1.0 - pow(hormone_level/zmax, aP));
+    }
 
     return(kill_prob);
 }
@@ -486,7 +492,7 @@ void survive()
        
         // OK, did not survive dependent on the level of stress & damage
         if (gsl_rng_uniform(rng_r) < 
-                pkill(P[ind_i].hormone))
+                pkill(P[ind_i].hormone, true))
         {
             ++death_t;
             // delete individual from stack
@@ -548,20 +554,51 @@ void survive()
                     NP[ind_i].hormone;
         }
 
-        // update damage levels
-        NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
-
-        // set boundaries to damage level
-        assert(NP[ind_i].damage >= 0);
-
-        if (NP[ind_i].damage > dmax)
+        // OK, did not survive dependent on the level of stress & damage
+        if (gsl_rng_uniform(rng_r) < 
+                pkill(NP[ind_i].hormone, false))
         {
-            NP[ind_i].damage = dmax;
-        }
+            ++death_t;
+            // delete individual from stack
+            NP[ind_i] = P[--numP];
+            --ind_i;
 
-        // add to cumulative distribution of damage
-        damage_cumul[numP + ind_i] = sum_damage + (1.0 - pow(NP[ind_i].damage/dmax, ad));
-        sum_damage = damage_cumul[ind_i];
+            assert(numNP >= 0);
+            assert(numNP <= Npop);
+        }
+        else // Individual survived. Check for potential for envt'al change
+        {
+            // update damage levels
+            NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
+
+            // set boundaries to damage level
+            assert(NP[ind_i].damage >= 0);
+
+            if (NP[ind_i].damage > dmax)
+            {
+                NP[ind_i].damage = dmax;
+            }
+
+            // add to cumulative distribution of damage
+            damage_cumul[ind_i] = sum_damage + (1.0 - pow(P[ind_i].damage/dmax, ad));
+            sum_damage = damage_cumul[ind_i];
+
+
+            // update damage levels
+            NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
+
+            // set boundaries to damage level
+            assert(NP[ind_i].damage >= 0);
+
+            if (NP[ind_i].damage > dmax)
+            {
+                NP[ind_i].damage = dmax;
+            }
+
+            // add to cumulative distribution of damage
+            damage_cumul[numP + ind_i] = sum_damage + (1.0 - pow(NP[ind_i].damage/dmax, ad));
+            sum_damage = damage_cumul[ind_i];
+        }
     }
 
     if (numP + numNP == 0)

@@ -86,12 +86,15 @@ assert(params_at_start is not None)
 
 line_num_params = find_parameter_linenum(sys.argv[1])
 
+print("number of rows to skip: "  + str(params_at_start))
+print("endline "  + str(line_num_params))
+
 # get the data
 dat = pd.read_csv(sys.argv[1],
-        nrows=line_num_params-1,
-        sep=';',
-        skiprows=params_at_start,
-        index_col=False)
+    nrows=line_num_params-1-params_at_start,
+    sep=';',
+    skiprows=params_at_start,
+    index_col=False)
 
 #########################################
 #           make figure
@@ -109,10 +112,10 @@ numcols  = len(widths)
 
 # make the grid
 gs = gridspec.GridSpec(
-        nrows=numrows,
-        ncols=numcols,
-        width_ratios=widths,
-        height_ratios=heights)
+    nrows=numrows,
+    ncols=numcols,
+    width_ratios=widths,
+    height_ratios=heights)
 
 
 # start next entry of the graph
@@ -120,28 +123,28 @@ gs = gridspec.GridSpec(
 ax = plt.subplot(gs[0,0])
 
 ax.plot(
-        dat["generation"],
-        dat["mean_feedback"],
-        label="feedback",
-        color="red"
-        )
+    dat["generation"],
+    dat["mean_feedback"],
+    label="feedback",
+    color="red"
+    )
 
 ax.fill_between(
-        x=dat["generation"],
-        y1=dat["mean_feedback"] + dat["var_feedback"].apply(np.sqrt),
-        y2=dat["mean_feedback"] - dat["var_feedback"].apply(np.sqrt),
-        label="_nolabel",
-        color="red",
-        alpha=0.1,
-        linewidth=0
-        )
+    x=dat["generation"],
+    y1=dat["mean_feedback"] + dat["var_feedback"].apply(np.sqrt),
+    y2=dat["mean_feedback"] - dat["var_feedback"].apply(np.sqrt),
+    label="_nolabel",
+    color="red",
+    alpha=0.1,
+    linewidth=0
+    )
 
 ax.set_ylabel("Mean" + "\n" +  r"Feedback$\pm$SD")
 
 ax.tick_params(
-        axis="x",
-        which="both",
-        labelbottom=False)
+    axis="x",
+    which="both",
+    labelbottom=False)
 
 
 # plot influxes 
@@ -150,102 +153,102 @@ ax = plt.subplot(gs[1,0])
 ax.set_ylabel(r"Influx")
 
 ax.plot(
-        dat["generation"],
-        dat["mean_influx"],
-        label="Influx",
-        color="blue")
+    dat["generation"],
+    dat["mean_influx"],
+    label="Influx",
+    color="blue")
 
 ax.fill_between(
-        x=dat["generation"],
-        y1=dat["mean_influx"] + dat["var_influx"].apply(np.sqrt),
-        y2=dat["mean_influx"] - dat["var_influx"].apply(np.sqrt),
-        label="_nolabel",
-        color="blue",
-        alpha=0.1,
-        linewidth=0
-        )
+    x=dat["generation"],
+    y1=dat["mean_influx"] + dat["var_influx"].apply(np.sqrt),
+    y2=dat["mean_influx"] - dat["var_influx"].apply(np.sqrt),
+    label="_nolabel",
+    color="blue",
+    alpha=0.1,
+    linewidth=0
+    )
 
 ax.plot(
-        dat["generation"],
-        dat["mean_stress_influx"],
-        label="Stress influx",
-        color="red")
+    dat["generation"],
+    dat["mean_stress_influx"],
+    label="Stress influx",
+    color="red")
 
 ax.fill_between(
-        x=dat["generation"],
-        y1=dat["mean_stress_influx"] + dat["var_stress_influx"].apply(np.sqrt),
-        y2=dat["mean_stress_influx"] - dat["var_stress_influx"].apply(np.sqrt),
-        label="_nolabel",
-        color="red",
-        alpha=0.1,
-        linewidth=0
-        )
+    x=dat["generation"],
+    y1=dat["mean_stress_influx"] + dat["var_stress_influx"].apply(np.sqrt),
+    y2=dat["mean_stress_influx"] - dat["var_stress_influx"].apply(np.sqrt),
+    label="_nolabel",
+    color="red",
+    alpha=0.1,
+    linewidth=0
+    )
 
 ax.legend()
 
 ax.tick_params(
-        axis="x",
-        which="both",
-        labelbottom=False)
+    axis="x",
+    which="both",
+    labelbottom=False)
 
 ####### plot damage #######
 ax = plt.subplot(gs[2,0])
 
 ax.plot(
-        dat["generation"],
-        dat["mean_damage"],
-        label="damage")
+    dat["generation"],
+    dat["mean_damage"],
+    label="damage")
 
 ax.set_ylabel(r"Damage")
 
 ax.tick_params(
-        axis="x",
-        which="both",
-        labelbottom=False)
+    axis="x",
+    which="both",
+    labelbottom=False)
 
 
 ####### plot hormones #######
 ax = plt.subplot(gs[3,0])
 
 ax.plot(
-        dat["generation"],
-        dat["mean_hormone"],
-        label="hormone")
+    dat["generation"],
+    dat["mean_hormone"],
+    label="hormone")
 
 ax.set_ylabel(r"Hormone")
 
 ax.tick_params(
-        axis="x",
-        which="both",
-        labelbottom=False)
+    axis="x",
+    which="both",
+    labelbottom=False)
 
 ####### plot variances #######
 ax = plt.subplot(gs[4,0])
 
 ax.plot(
-        dat["generation"],
-        dat["var_feedback"],
-        label="Feedback")
+    dat["generation"],
+    dat["var_feedback"],
+    label="Feedback")
 
 ax.plot(
-        dat["generation"],
-        dat["var_stress_influx"],
-        label="Stress influx")
+    dat["generation"],
+    dat["var_stress_influx"],
+    label="Stress influx")
 
 ax.plot(
-        dat["generation"],
-        dat["var_influx"],
-        label="Influx")
+    dat["generation"],
+    dat["var_influx"],
+    label="Influx")
 
 ax.plot(
-        dat["generation"],
-        dat["var_hormone"],
-        label="Hormone")
+    dat["generation"],
+    dat["var_hormone"],
+    label="Hormone")
 
 ax.plot(
-        dat["generation"],
-        dat["var_damage"],
-        label="Damage")
+    dat["generation"],
+    dat["var_damage"],
+    label="Damage")
 
 ax.legend()
 ax.set_ylabel(r"Var")
@@ -268,7 +271,7 @@ var_influx = float(dat["var_influx"][-1:])
 stress_influx = float(dat["mean_stress_influx"][-1:])
 var_stress_influx = float(dat["var_stress_influx"][-1:])
 
-nrep = 2000
+nrep = 1000
 
 for i in range(0,nrep):
 
@@ -350,15 +353,14 @@ ax.plot(dat["generation"]
 ax.set_ylabel(r"Prob mort")
         
 
-format = "pdf"
+format = "png"
 
 filename = os.path.join(
         os.path.dirname(sys.argv[1]),
         "graph_" + os.path.basename(sys.argv[1]) + "." + format
         )
 
-print(type(filename))
-
+print("finalizing plot")
 plt.savefig(
         fname=filename,
         format=format, 
