@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os, re, sys, math
 import numpy as np
+import socket as st
 
 mu_feedback = [0.02]
 mu_stress_influx = [0.02]
@@ -11,8 +12,8 @@ sdmu = [ 0.02]
 #s_P2NP = [[0.01,0.02],[ 0.04,0.08], [ 0.1,0.2]]
 #s_NP2P = [[0.005,0.01], [ 0.02,0.04], [ 0.05, 0.1]]
 
-s_P2NP_pre = [ 0.01, 0.1, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99 ]
-s_NP2P_pre = [ 0.01, 0.1, 0.2, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99 ]
+s_P2NP_pre = [ 0.5 ] 
+s_NP2P_pre = [ 0.5 ]
 
 #s_P2NP_pre = [ 0.05 ]
 #s_NP2P_pre = [ 0.05 ]
@@ -27,14 +28,14 @@ for s1_i in s_P2NP_pre:
 for s1_i in s_NP2P_pre:
     s_NP2P += [[s1_i,s1_i]]
 
-
+# from one world to another
 s_12 = [[ 0.1,0.1]]
 
 #cue_P = [ 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
 #cue_NP = [ 0.0, 0.2, 0.3, 0.4 ]
 
 cue_P = [ 0.8 ]
-cue_NP = [ 0.4 ]
+cue_NP = [ 0.0 ]
 
 s0 = [ 0.5 ]
 ad = [ 0.5 ]
@@ -58,6 +59,15 @@ init_influx = [0, 1.0]
 mort_background = 0.2
 
 exe = "./xstress"
+
+background = True
+
+host = st.gethostname()
+
+if host is not "anthoxanthum":
+    background = False
+
+background_str = " & "
 
 # make all permutations of parameter combinations
 for rep_i in range(0,nrep):
@@ -108,4 +118,5 @@ for rep_i in range(0,nrep):
                                                                                         + str(r_i) + " " 
                                                                                         + str(u_i) + " " 
                                                                                         + str(mort_background) + " " 
+                                                                                        + str(background_str)
                                                                                         )

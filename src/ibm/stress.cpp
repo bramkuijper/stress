@@ -33,7 +33,7 @@ using namespace std;
 
 // set up the random number generator
 // set random seed etc
-int seed = get_nanoseconds();
+int seed = 1548205016; //get_nanoseconds();
 mt19937 rng_r{static_cast<unsigned int>(seed)};
 uniform_real_distribution<> uniform(0.0,1.0);
 
@@ -42,13 +42,13 @@ bernoulli_distribution random_allele(0.5);
 
 
 // number of generations
-const long int NumGen = 5000000;
+const long int NumGen = 50000;
 
 // population size
 const int Npop = 5000; 
 
 // number of generations to skip when outputting data
-const long int skip = 1000;
+const long int skip = 100;
 
 // track population sizes in each of the environments
 int numP = 0;
@@ -278,8 +278,7 @@ void init_population()
             NP[numNP++] = newInd;
         }
 
-        assert(numP <= Npop);
-        assert(numNP <= Npop);
+        assert(numP + numNP <= Npop);
     } 
 
     current_world = false;
@@ -322,7 +321,7 @@ void create_offspring(
                 sdmu
                 );
 
-        clamp(kid.feedback[allele_i], 0.0, DBL_MAX);
+        clamp(kid.stress_influx[allele_i], 0.0, DBL_MAX);
 
         kid.influx[allele_i] = 
             allele_i < 1 ? 
@@ -335,7 +334,7 @@ void create_offspring(
                 mu_influx, 
                 sdmu);
         
-        clamp(kid.feedback[allele_i], 0.0, DBL_MAX);
+        clamp(kid.influx[allele_i], 0.0, DBL_MAX);
     } // inheritance done
 
     // set hormone level and damage to their baseline values
@@ -413,6 +412,9 @@ void environmental_switching()
     for (int ind_i = 0; ind_i < numNPnew; ++ind_i)
     {
         NP[numNP++] = NPnew[ind_i];
+
+        assert(numNP + numP >= 0);
+        assert(numNP + numP <= Npop);
     }
 }
 
@@ -424,6 +426,10 @@ void survive(ofstream &datafile)
 
     death_t = 0;
 
+    assert(numP >= 0);
+    assert(numNP >= 0);
+    assert(numP + numNP <= Npop);
+
     // survival in the P population
     for (int ind_i = 0; ind_i < numP; ++ind_i)
     {
@@ -433,7 +439,13 @@ void survive(ofstream &datafile)
             0.5 * (P[ind_i].influx[0] + P[ind_i].influx[1])
              + (1.0 - 0.5 * (P[ind_i].feedback[0] + P[ind_i].feedback[1]))
              * P[ind_i].hormone;
+
+        assert(P[ind_i].influx[0] >= 0.0);        
+        assert(P[ind_i].influx[1] >= 0.0);        
         
+        assert(P[ind_i].stress_influx[0] >= 0.0);        
+        assert(P[ind_i].stress_influx[1] >= 0.0);        
+
         // individual gets predator cue 
         if (uniform(rng_r) < cue_P)
         {
@@ -525,7 +537,7 @@ void survive(ofstream &datafile)
         {
             ++death_t;
             // delete individual from stack
-            NP[ind_i] = P[--numP];
+            NP[ind_i] = P[--numNP];
             --ind_i;
 
             assert(numNP >= 0);
@@ -566,6 +578,9 @@ void survive(ofstream &datafile)
         }
     }
 
+    assert(numP >= 0);
+    assert(numNP >= 0);
+
     if (numP + numNP == 0)
     {
         cout << "extinct" << endl;
@@ -581,33 +596,14 @@ void survive(ofstream &datafile)
 }
 
 
-//void reproduce()
-//{
-//    int Noffspring = Npop - numP - numNP;
-//
-//    int Nparents = numP + numNP;
-//    
-//    if (Noffspring == 0)
-//    {
-//        return;
-//    }
-//
-//    Individual kids[Noffspring];
-//    double sample = uniform(rng_r) * sum_damage;
-//
-//    // now sample parents for each offspring
-//    for (int offspring_i = 0; offspring_i < Noffspring; ++offspring_i)
-//    {
-//
-//        for (int parent_i = 0; parent_i < Nparents; ++parent_i)
-//        {
-//        }
-//    }
-//}
-
-
+// check reproduction
 void reproduce_check(ofstream &datafile)
 {
+    assert(numP >= 0);
+    assert(numNP >= 0);
+    assert(numP + numNP > 0);
+    assert(numP + numNP <= Npop);
+
     // number of offspring to be made
     int Noffspring = Npop - numP - numNP;
 
@@ -625,24 +621,33 @@ void reproduce_check(ofstream &datafile)
 
     int father, mother;
 
-    if (numP < 1 && numNP < 1)
+    if (numP + numNP < 1)
     {
         write_parameters(datafile);
         exit(1);
     }   
 
-    uniform_int_distribution<int> random_parent(0, numP + numNP);
+    uniform_int_distribution<int> random_parent(0, numP + numNP - 1);
 
     for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
     {
         father = random_parent(rng_r);
         mother = random_parent(rng_r);
-;
+
+        assert(father < Npop);
+        assert(father >= 0);
+        assert(mother < Npop);
+        assert(mother >= 0);
+
         // first obtain father from cumul dist
         cumul_deviate = uniform(rng_r) * sum_damage;
 
         for (int ind_i = 0; ind_i < numP + numNP; ++ind_i)
         {
+            assert(ind_i >= 0);
+            assert(ind_i < numP + numNP);
+            assert(ind_i < Npop);
+
             if (cumul_deviate < damage_cumul[ind_i])
             {
                 father = ind_i;
@@ -653,8 +658,15 @@ void reproduce_check(ofstream &datafile)
         // then obtain father from cumul dist
         cumul_deviate = uniform(rng_r) * sum_damage;
 
+        assert(cumul_deviate >= 0);
+        assert(cumul_deviate <= sum_damage);
+
         for (int ind_i = numP; ind_i < numP + numNP; ++ind_i)
         {
+            assert(ind_i >= 0);
+            assert(ind_i < numP + numNP);
+            assert(ind_i < Npop);
+
             if (cumul_deviate < damage_cumul[ind_i])
             {
                 mother = ind_i;
@@ -1069,6 +1081,7 @@ int main(int argc, char ** argv)
     // the main part of the code
 	for (generation = 0; generation <= NumGen; ++generation)
 	{
+        cout << generation << endl;
         environmental_switching();
 
 		survive(DataFile);
