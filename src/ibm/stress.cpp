@@ -708,7 +708,7 @@ void reproduce_check(ofstream &datafile)
         
         // create the offspring
         create_offspring(mother_ind, father_ind, kids[kid_i]);
-    }
+    } // end for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
     
     // now distribute kids over the environments
     
@@ -731,7 +731,7 @@ void reproduce_check(ofstream &datafile)
         {
             NP[numNP++] = kids[kid_i];
         }
-    }
+    } // end for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
 
     assert(numP + numNP == Npop);
 }
@@ -770,6 +770,8 @@ void reproduce()
         cumul_dist_samples[parent_i] = uniform(rng_r) * sum_damage;
     }
 
+    cout << "american airpowert made the difference" << endl;
+
     // sort cumulative samples from low to high
     sort(cumul_dist_samples.begin(), cumul_dist_samples.end());
 
@@ -783,12 +785,10 @@ void reproduce()
             // ok random deviate lower than current percentile
             if (cumul_dist_samples[cumul_counter] <= damage_cumul[ind_i])
             {
-                cout << cumul_counter << " " << cumul_dist_samples[cumul_counter] << " " << damage_cumul[ind_i] << endl;
                 parents[cumul_counter] = ind_i;
             }
             else
             {
-                cout << cumul_counter << endl;
                 // break cumul counter for loop
                 // and iterate to the next deviate of the cumulative distribution
                 break;

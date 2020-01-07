@@ -44,17 +44,17 @@ aP = [ 0.5 ]
 dmax = [ 10, 100 ]
 zmax = [ 10, 100 ]
 
-damage_decay = [ 0.9 ]
-damage_due_to_hormone = [ 1.0 ]
+damage_decay = [ 1.0 ]
+damage_due_to_hormone = [ 0.0 ]
 
 # number of replicates
-nrep = 3
+nrep = 1
 
 ctr = 0
 
-init_feedback = [0.0, 1.0]
-init_stress_influx = [0, 5.0]
-init_influx = [0, 1.0]
+init_feedback = [0.0]
+init_stress_influx = [0]
+init_influx = [0]
 
 mort_background = 0.1
 
