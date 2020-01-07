@@ -357,6 +357,9 @@ double pkill(double const hormone_level, bool envt_is_P)
         kill_prob += (1.0 - mort_background) * (1.0 - pow(hormone_level/zmax, aP));
     }
 
+    assert(kill_prob >= 0);
+    assert(kill_prob <= 1.0);
+
     return(kill_prob);
 }
 
@@ -416,7 +419,7 @@ void environmental_switching()
         assert(numNP + numP >= 0);
         assert(numNP + numP <= Npop);
     }
-}
+} //end void environmental_switching()
 
 
 // survival of individuals
@@ -453,7 +456,7 @@ void survive(ofstream &datafile)
             P[ind_i].hormone += 
                 0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
         }
-
+        
         // set boundaries to hormone level
         if (P[ind_i].hormone > zmax)
         {
@@ -510,6 +513,12 @@ void survive(ofstream &datafile)
              + (1.0 - 0.5 * (NP[ind_i].feedback[0] + NP[ind_i].feedback[1]))
              * NP[ind_i].hormone;
 
+        assert(NP[ind_i].influx[0] >= 0.0);        
+        assert(NP[ind_i].influx[1] >= 0.0);        
+        
+        assert(NP[ind_i].stress_influx[0] >= 0.0);        
+        assert(NP[ind_i].stress_influx[1] >= 0.0);        
+
         // individual gets predator cue 
         if (uniform(rng_r) < cue_NP)
         {
@@ -537,7 +546,7 @@ void survive(ofstream &datafile)
         {
             ++death_t;
             // delete individual from stack
-            NP[ind_i] = P[--numNP];
+            NP[ind_i] = NP[--numNP];
             --ind_i;
 
             assert(numNP >= 0);
@@ -556,30 +565,20 @@ void survive(ofstream &datafile)
                 NP[ind_i].damage = dmax;
             }
 
-            // add to cumulative distribution of damage
-            damage_cumul[ind_i] = sum_damage + (1.0 - pow(P[ind_i].damage/dmax, ad));
-            sum_damage = damage_cumul[ind_i];
-
-
-            // update damage levels
-            NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
-
-            // set boundaries to damage level
-            assert(NP[ind_i].damage >= 0);
-
-            if (NP[ind_i].damage > dmax)
+            if (numP > 0)
             {
-                NP[ind_i].damage = dmax;
+                assert(damage_cumul[numP + ind_i - 1] == sum_damage);
             }
 
             // add to cumulative distribution of damage
             damage_cumul[numP + ind_i] = sum_damage + (1.0 - pow(NP[ind_i].damage/dmax, ad));
-            sum_damage = damage_cumul[ind_i];
+            sum_damage = damage_cumul[numP + ind_i];
         }
     }
 
     assert(numP >= 0);
     assert(numNP >= 0);
+    assert(numP + numNP <= Npop);
 
     if (numP + numNP == 0)
     {
@@ -1081,7 +1080,6 @@ int main(int argc, char ** argv)
     // the main part of the code
 	for (generation = 0; generation <= NumGen; ++generation)
 	{
-        cout << generation << endl;
         environmental_switching();
 
 		survive(DataFile);
