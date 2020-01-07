@@ -42,7 +42,7 @@ bernoulli_distribution random_allele(0.5);
 
 
 // number of generations
-const long int NumGen = 50000;
+const long int NumGen = 100000;
 
 // population size
 const int Npop = 5000; 
@@ -501,7 +501,7 @@ void survive(ofstream &datafile)
             damage_cumul[ind_i] = sum_damage + (1.0 - pow(P[ind_i].damage/dmax, ad));
             sum_damage = damage_cumul[ind_i];
         }
-    }
+    } // end for (int ind_i = 0; ind_i < numP; ++ind_i)
 
     // survival in the NP population
     for (int ind_i = 0; ind_i < numNP; ++ind_i)
@@ -538,7 +538,7 @@ void survive(ofstream &datafile)
                     0.0 
                     : 
                     NP[ind_i].hormone;
-        }
+       }
 
         // OK, did not survive dependent on the level of stress & damage
         if (uniform(rng_r) < 
@@ -574,7 +574,7 @@ void survive(ofstream &datafile)
             damage_cumul[numP + ind_i] = sum_damage + (1.0 - pow(NP[ind_i].damage/dmax, ad));
             sum_damage = damage_cumul[numP + ind_i];
         }
-    }
+    } // end for for (int ind_i = 0; ind_i < numNP; ++ind_i)
 
     assert(numP >= 0);
     assert(numNP >= 0);
@@ -783,10 +783,12 @@ void reproduce()
             // ok random deviate lower than current percentile
             if (cumul_dist_samples[cumul_counter] <= damage_cumul[ind_i])
             {
+                cout << cumul_counter << " " << cumul_dist_samples[cumul_counter] << " " << damage_cumul[ind_i] << endl;
                 parents[cumul_counter] = ind_i;
             }
             else
             {
+                cout << cumul_counter << endl;
                 // break cumul counter for loop
                 // and iterate to the next deviate of the cumulative distribution
                 break;
