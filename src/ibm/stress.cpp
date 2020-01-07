@@ -33,7 +33,7 @@ using namespace std;
 
 // set up the random number generator
 // set random seed etc
-int seed = 1548205016; //get_nanoseconds();
+int seed = get_nanoseconds();
 mt19937 rng_r{static_cast<unsigned int>(seed)};
 uniform_real_distribution<> uniform(0.0,1.0);
 
