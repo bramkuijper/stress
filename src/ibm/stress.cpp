@@ -143,8 +143,8 @@ typedef Individual Population[Npop];
 Population P, NP, Pnew, NPnew;
 
 // vector with doubles on cumulative damage levels
-double damage_cumul[Npop];
-double sum_damage;
+double fecundity_cumul[Npop];
+double sum_fecundity;
 
 // initialize simulations from command line arguments
 void init_arguments(int argc, char *argv[])
@@ -342,10 +342,22 @@ void create_offspring(
     kid.damage = 0.0;
 }
 
+// calculate the reduction in fecundity due to damage
+double fecundity_damage(double const damage)
+{
+    double val = 1.0 - pow(damage/dmax,ad);
+
+    if (val <= 0.0)
+    {
+        val = 0.0;
+    }
+
+    return(val);
+}
+
 // calculate mortality probability
 // dependent on 
 // - whether or not individual is in environment P
-// - its level of damage
 // - its current hormone level
 double pkill(double const hormone_level, bool envt_is_P)
 {
@@ -425,7 +437,7 @@ void environmental_switching()
 // survival of individuals
 void survive(ofstream &datafile)
 {
-    sum_damage = 0.0;
+    sum_fecundity = 0.0;
 
     death_t = 0;
 
@@ -456,20 +468,9 @@ void survive(ofstream &datafile)
             P[ind_i].hormone += 
                 0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
         }
+
+        clamp(P[ind_i].hormone, 0.0, zmax);
         
-        // set boundaries to hormone level
-        if (P[ind_i].hormone > zmax)
-        {
-            P[ind_i].hormone = 
-                P[ind_i].hormone > zmax ? 
-                zmax 
-                : 
-                P[ind_i].hormone < 0.0 ? 
-                    0.0 
-                    : 
-                    P[ind_i].hormone;
-        }
-       
         // OK, did not survive dependent on the level of stress & damage
         if (uniform(rng_r) < 
                 pkill(P[ind_i].hormone, true))
@@ -492,14 +493,11 @@ void survive(ofstream &datafile)
             // set boundaries to damage level
             assert(P[ind_i].damage >= 0);
 
-            if (P[ind_i].damage > dmax)
-            {
-                P[ind_i].damage = dmax;
-            }
+            clamp(P[ind_i].damage,0.0,dmax);
 
             // add to cumulative distribution of damage
-            damage_cumul[ind_i] = sum_damage + (1.0 - pow(P[ind_i].damage/dmax, ad));
-            sum_damage = damage_cumul[ind_i];
+            fecundity_cumul[ind_i] = sum_fecundity + fecundity_damage(P[ind_i].damage);
+            sum_fecundity = fecundity_cumul[ind_i];
         }
     } // end for (int ind_i = 0; ind_i < numP; ++ind_i)
 
@@ -527,20 +525,9 @@ void survive(ofstream &datafile)
                 0.5 * (NP[ind_i].stress_influx[0] + NP[ind_i].stress_influx[1]);
         }
 
-        // set boundaries to hormone level
-        if (NP[ind_i].hormone > zmax)
-        {
-            NP[ind_i].hormone = 
-                NP[ind_i].hormone > zmax ? 
-                zmax 
-                : 
-                NP[ind_i].hormone < 0.0 ? 
-                    0.0 
-                    : 
-                    NP[ind_i].hormone;
-       }
+        clamp(P[ind_i].hormone, 0.0, zmax);
 
-        // OK, did not survive dependent on the level of stress & damage
+        // individual did not survive 
         if (uniform(rng_r) < 
                 pkill(NP[ind_i].hormone, false))
         {
@@ -560,19 +547,16 @@ void survive(ofstream &datafile)
             // set boundaries to damage level
             assert(NP[ind_i].damage >= 0);
 
-            if (NP[ind_i].damage > dmax)
-            {
-                NP[ind_i].damage = dmax;
-            }
+            clamp(NP[ind_i].damage, 0.0, dmax);
 
             if (numP > 0)
             {
-                assert(damage_cumul[numP + ind_i - 1] == sum_damage);
+                assert(fecundity_cumul[numP + ind_i - 1] == sum_fecundity);
             }
 
             // add to cumulative distribution of damage
-            damage_cumul[numP + ind_i] = sum_damage + (1.0 - pow(NP[ind_i].damage/dmax, ad));
-            sum_damage = damage_cumul[numP + ind_i];
+            fecundity_cumul[numP + ind_i] = sum_fecundity + fecundity_damage(NP[ind_i].damage);
+            sum_fecundity = fecundity_cumul[numP + ind_i];
         }
     } // end for for (int ind_i = 0; ind_i < numNP; ++ind_i)
 
@@ -639,7 +623,7 @@ void reproduce_check(ofstream &datafile)
         assert(mother >= 0);
 
         // first obtain father from cumul dist
-        cumul_deviate = uniform(rng_r) * sum_damage;
+        cumul_deviate = uniform(rng_r) * sum_fecundity;
 
         for (int ind_i = 0; ind_i < numP + numNP; ++ind_i)
         {
@@ -647,7 +631,7 @@ void reproduce_check(ofstream &datafile)
             assert(ind_i < numP + numNP);
             assert(ind_i < Npop);
 
-            if (cumul_deviate < damage_cumul[ind_i])
+            if (cumul_deviate < fecundity_cumul[ind_i])
             {
                 father = ind_i;
                 break;
@@ -655,10 +639,10 @@ void reproduce_check(ofstream &datafile)
         }
         
         // then obtain father from cumul dist
-        cumul_deviate = uniform(rng_r) * sum_damage;
+        cumul_deviate = uniform(rng_r) * sum_fecundity;
 
         assert(cumul_deviate >= 0);
-        assert(cumul_deviate <= sum_damage);
+        assert(cumul_deviate <= sum_fecundity);
 
         for (int ind_i = numP; ind_i < numP + numNP; ++ind_i)
         {
@@ -666,7 +650,7 @@ void reproduce_check(ofstream &datafile)
             assert(ind_i < numP + numNP);
             assert(ind_i < Npop);
 
-            if (cumul_deviate < damage_cumul[ind_i])
+            if (cumul_deviate < fecundity_cumul[ind_i])
             {
                 mother = ind_i;
                 break;
@@ -767,7 +751,7 @@ void reproduce()
     {
         // now add random numbers from the cumulative distribution to the list
         // of samples that need to be found in the cumulative distribution
-        cumul_dist_samples[parent_i] = uniform(rng_r) * sum_damage;
+        cumul_dist_samples[parent_i] = uniform(rng_r) * sum_fecundity;
     }
 
     cout << "american airpowert made the difference" << endl;
@@ -783,7 +767,7 @@ void reproduce()
         for (; cumul_counter < Nparents; ++cumul_counter)
         {
             // ok random deviate lower than current percentile
-            if (cumul_dist_samples[cumul_counter] <= damage_cumul[ind_i])
+            if (cumul_dist_samples[cumul_counter] <= fecundity_cumul[ind_i])
             {
                 parents[cumul_counter] = ind_i;
             }
@@ -1035,7 +1019,7 @@ void write_simple_iter(ofstream &IterFile)
         assert(ind.feedback[0] >= 0.0);
         assert(ind.feedback[1] <= 1.0);
 
-        stress = 5.0;
+        stress = 0.0;
         stress_tplus1 = 0.0;
 
         // iterate the stress response for this individual

@@ -41,14 +41,14 @@ s0 = [ 0.5 ]
 ad = [ 0.5 ]
 aP = [ 0.5 ]
 
-dmax = [ 10, 100 ]
-zmax = [ 10, 100 ]
+dmax = [ 10 ]
+zmax = [ 10 ]
 
 damage_decay = [ 1.0 ]
 damage_due_to_hormone = [ 0.0 ]
 
 # number of replicates
-nrep = 1
+nrep = 2
 
 ctr = 0
 
@@ -60,14 +60,14 @@ mort_background = 0.1
 
 exe = "./xstress"
 
-background = True
 
 host = st.gethostname()
 
-if host is not "anthoxanthum":
-    background = False
+background = False
+if re.search("anthoxanthum",host) is not None:
+    background = True
 
-background_str = " & " if host is "anthoxanthum" else ""
+background_str = " & " if background else ""
 
 # make all permutations of parameter combinations
 for rep_i in range(0,nrep):
