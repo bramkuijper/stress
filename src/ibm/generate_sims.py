@@ -12,8 +12,8 @@ sdmu = [ 0.02]
 #s_P2NP = [[0.01,0.02],[ 0.04,0.08], [ 0.1,0.2]]
 #s_NP2P = [[0.005,0.01], [ 0.02,0.04], [ 0.05, 0.1]]
 
-s_P2NP_pre = [ 0.1, 0.2] 
-s_NP2P_pre = [ 0.2, 0.2 ]
+s_P2NP_pre = [ 0.05, 0.1, 0.2, 0.5, 0.8 ] 
+s_NP2P_pre = [ 0.2, 0.5 ]
 
 #s_P2NP_pre = [ 0.05 ]
 #s_NP2P_pre = [ 0.05 ]
@@ -34,7 +34,7 @@ s_12 = [[ 0.1,0.1]]
 #cue_P = [ 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
 #cue_NP = [ 0.0, 0.2, 0.3, 0.4 ]
 
-cue_P = [ 0.8 ]
+cue_P = [ 0.0 ]
 cue_NP = [ 0.0 ]
 
 s0 = [ 0.5 ]
@@ -44,11 +44,11 @@ aP = [ 0.5 ]
 dmax = [ 10 ]
 zmax = [ 10 ]
 
-damage_decay = [ 1.0 ]
-damage_due_to_hormone = [ 0.0 ]
+damage_decay = [ 0.5, 1.0 ]
+damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
-nrep = 2
+nrep = 3
 
 ctr = 0
 

@@ -351,7 +351,8 @@ void create_offspring(
     kid.damage = 0.0;
 }
 
-// calculate the cost in fecundity due to damage
+// calculate fecundity and how it will be affected
+// by damage. If no damage, fecundity is 1
 double fecundity_damage(double const damage)
 {
     double val = 1.0 - pow(damage/dmax,ad);
@@ -487,8 +488,7 @@ void survive(ofstream &datafile)
         clamp(P[ind_i].hormone, 0.0, zmax);
         
         // OK, did not survive dependent on the level of stress & damage
-        if (uniform(rng_r) < 
-                pkill(P[ind_i].hormone, true))
+        if (uniform(rng_r) < pkill(P[ind_i].hormone, true))
         {
             ++death_t;
             // delete individual from stack
@@ -547,8 +547,7 @@ void survive(ofstream &datafile)
         clamp(P[ind_i].hormone, 0.0, zmax);
 
         // individual did not survive 
-        if (uniform(rng_r) < 
-                pkill(NP[ind_i].hormone, false))
+        if (uniform(rng_r) < pkill(NP[ind_i].hormone, false))
         {
             ++death_t;
             // delete individual from stack
