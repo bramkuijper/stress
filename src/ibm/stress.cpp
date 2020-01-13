@@ -1035,7 +1035,7 @@ void write_simple_iter(ofstream &IterFile)
         assert(ind.feedback[0] >= 0.0);
         assert(ind.feedback[1] <= 1.0);
 
-        stress = 5.0;
+        stress = 0.0;
         stress_tplus1 = 0.0;
 
         // iterate the stress response for this individual

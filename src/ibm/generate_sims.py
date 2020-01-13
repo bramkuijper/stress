@@ -41,14 +41,14 @@ s0 = [ 0.5 ]
 ad = [ 0.5 ]
 aP = [ 0.5 ]
 
-dmax = [ 10, 100 ]
-zmax = [ 10, 100 ]
+dmax = [ 10 ]
+zmax = [ 10 ]
 
-damage_decay = [ 1.0 ]
-damage_due_to_hormone = [ 0.0 ]
+damage_decay = [ 0.1, 0.25, 0.5, 0.75, 0.9, 1.0 ]
+damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
-nrep = 1
+nrep = 3
 
 ctr = 0
 
@@ -56,7 +56,7 @@ init_feedback = [0.0]
 init_stress_influx = [0]
 init_influx = [0]
 
-mort_background = 0.1
+mort_background = 0.2
 
 exe = "./xstress"
 
