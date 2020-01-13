@@ -92,6 +92,10 @@ double init_stress_influx = 0.0;
 double init_influx = 0.0;
 
 // cue probabilities
+// this is the cue that is given before 
+// a predation potentially happens
+// if the cue is equal in environments P or NP
+// then it is uninformative
 double cue_P = 0.0;
 double cue_NP = 0.0;
 
@@ -293,6 +297,7 @@ void create_offspring(
     // inherit the different gene loci
     for (int allele_i = 0; allele_i < 2; ++allele_i)
     {
+        // inherit feedback alleles
         kid.feedback[allele_i] = 
             allele_i < 1 ? 
             mother.feedback[random_allele(rng_r)] // mother inherits 
@@ -309,6 +314,8 @@ void create_offspring(
 
         clamp(kid.feedback[allele_i], 0.0, 1.0);
 
+
+        // inherit the stress influx allele
         kid.stress_influx[allele_i] = 
             allele_i < 1 ? 
             mother.stress_influx[random_allele(rng_r)] 
@@ -323,6 +330,8 @@ void create_offspring(
 
         clamp(kid.stress_influx[allele_i], 0.0, DBL_MAX);
 
+
+        // inherit the baseline influx allele
         kid.influx[allele_i] = 
             allele_i < 1 ? 
             mother.influx[random_allele(rng_r)] 
@@ -342,7 +351,7 @@ void create_offspring(
     kid.damage = 0.0;
 }
 
-// calculate the reduction in fecundity due to damage
+// calculate the cost in fecundity due to damage
 double fecundity_damage(double const damage)
 {
     double val = 1.0 - pow(damage/dmax,ad);
@@ -355,10 +364,16 @@ double fecundity_damage(double const damage)
     return(val);
 }
 
-// calculate mortality probability
-// dependent on 
-// - whether or not individual is in environment P
-// - its current hormone level
+// calculate the mortality probability
+// which is baseline + predator-induced in environment P
+// and baseline only in environment NP
+//
+// Parameters
+// ----------
+//      double const hormone_level:
+//          the current hormone level of the prey
+//
+//      
 double pkill(double const hormone_level, bool envt_is_P)
 {
     double kill_prob = mort_background;
