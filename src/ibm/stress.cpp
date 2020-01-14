@@ -1007,7 +1007,7 @@ void write_simple_iter(ofstream &IterFile)
     // number of individuals
     int nrep = 100;
     int tmax = 500;
-    int tstress = tmax - 100;
+    int tstress = 100;
 
     double stress, stress_tplus1;
 
@@ -1047,12 +1047,13 @@ void write_simple_iter(ofstream &IterFile)
                                 + (1.0 - 0.5 * (ind.feedback[0] + ind.feedback[1]))
                                 * stress;
             
-            if (timestep == tmax - tstress)
+            if (timestep == tstress)
             {
                 stress_tplus1 += 0.5 * (ind.stress_influx[0] + ind.stress_influx[1]);
             }
 
-            stress = stress_tplus1;
+            // update stress level
+            stress = clamp(stress_tplus1, 0, zmax);
 
             IterFile << timestep << ";" << ind_i << ";" << stress << ";" << endl;
         }
