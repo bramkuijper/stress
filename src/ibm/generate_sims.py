@@ -12,8 +12,8 @@ sdmu = [ 0.02]
 #s_P2NP = [[0.01,0.02],[ 0.04,0.08], [ 0.1,0.2]]
 #s_NP2P = [[0.005,0.01], [ 0.02,0.04], [ 0.05, 0.1]]
 
-s_P2NP_pre = [ 0.05, 0.1, 0.2, 0.5, 0.8 ] 
-s_NP2P_pre = [ 0.2, 0.5 ]
+s_P2NP_pre = [ 0.01, 0.2, 0.4, 0.6, 0.8 ]
+s_NP2P_pre = [ 0.01, 0.2, 0.4, 0.6, 0.8 ]
 
 #s_P2NP_pre = [ 0.05 ]
 #s_NP2P_pre = [ 0.05 ]
@@ -37,14 +37,15 @@ s_12 = [[ 0.1,0.1]]
 cue_P = [ 0.0 ]
 cue_NP = [ 0.0 ]
 
-s0 = [ 0.5 ]
-ad = [ 0.5 ]
-aP = [ 0.5 ]
+s0 = [ 0.5]
+ad = [ 0.5, 2]
+aP = [ 0.5, 2]
 
-dmax = [ 10 ]
-zmax = [ 10 ]
+dmax = [ 1 ]
+zmax = [ 1 ]
 
 damage_decay = [ 0.5, 1.0 ]
+
 damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
@@ -56,7 +57,7 @@ init_feedback = [0.0]
 init_stress_influx = [0]
 init_influx = [0]
 
-mort_background = 0.1
+mort_background = 0.3
 
 exe = "./xstress"
 

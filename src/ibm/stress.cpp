@@ -563,6 +563,9 @@ void survive(ofstream &datafile)
         }
         else // Individual survived. Check for potential for envt'al change
         {
+            // no stress homrone increase here, 
+            // as no predator has been encountered
+
             // update damage levels
             NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
 
@@ -1059,7 +1062,9 @@ void write_simple_iter(ofstream &IterFile)
             }
 
             // update stress level
-            stress = clamp(stress_tplus1, 0, zmax);
+            clamp(stress_tplus1, 0.0, zmax);
+
+            stress = stress_tplus1;
 
             IterFile << timestep << ";" << ind_i << ";" << stress << ";" << endl;
         }
