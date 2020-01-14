@@ -1,3 +1,6 @@
+#!/usr/bin/env Rscript 
+
+
 library("lattice")
 
 z <- seq(0,5,0.01)
@@ -69,7 +72,14 @@ fecundity <- function(row)
     damage <- row["damage"]
     dmax <- row["dmax"]
 
-    return(1.0 - (damage/dmax)^ad)
+    val <- 1.0 - (damage/dmax)^ad
+
+    if (val < 0.0)
+    {
+        val <- 0.0
+    }
+
+    return(val)
 }
 
 damage.grid[,"fecundity"] <- apply(
