@@ -1053,7 +1053,9 @@ void write_simple_iter(ofstream &IterFile)
             }
 
             // update stress level
-            stress = clamp(stress_tplus1, 0, zmax);
+            clamp(stress_tplus1, 0.1, zmax);
+
+            stress = stress_tplus1;
 
             IterFile << timestep << ";" << ind_i << ";" << stress << ";" << endl;
         }
