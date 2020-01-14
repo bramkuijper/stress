@@ -5,6 +5,7 @@ from pythontools import multipanel
 import pandas as pd
 from matplotlib import cm
 import os.path
+import sys
 
 import matplotlib as mpl
 mpl.use("pgf")
@@ -51,9 +52,9 @@ mpl.rcParams["svg.fonttype"] = "none"
 #the_data = pd.read_csv("summary_29_04_stress_curves.csv",sep=";")
 the_data = pd.read_csv("summary_vary_autocorrelation_new.csv",sep=";")
 
-the_data = the_data.loc[(the_data["sP2NP_1"].isin([0.01,0.05,0.1,0.2]))
-        & (the_data["sNP2P_1"].isin([0.01,0.05,0.1,0.2]))]
-
+#the_data = the_data.loc[(the_data["sP2NP_1"].isin([0.01,0.1,0.2,0.5]))
+#        & (the_data["sNP2P_1"].isin([0.01,0.1,0.2,0.5]))]
+#
 assert(the_data.shape[0] > 0)
 
 # TODO select only one particular row or so 
@@ -65,7 +66,7 @@ assert(the_data.shape[0] > 0)
 #iterfolder = "hpcbatch_07_01_2020_113528_iters/"
 #iterfolder = "hpcbatch_07_01_2020_113528_iters/"
 #iterfolder = "hpcbatch_07_01_2020_124016_iters/"
-iterfolder = "hpcbatch_07_01_2020_14something_iters/"
+iterfolder = "hpcbatch_14_01_2020_135151_iters/"
 ############## auxiliary functions ##############
 print("it's go...")
 
@@ -145,6 +146,7 @@ def stress_multipanel(
             ,filename=filename
             ,width=5 * len(p_leave_u)
             ,height=5 * len(p_arrive_u)
+            ,hspace = 0.3
             )
 
     # sort
@@ -191,7 +193,7 @@ def stress_multipanel(
                 # get list of unique replicates per parameter combination
                 replicates = list(iteration_data["replicate"].unique())
                 # get list of unique individuals per replicate
-                individuals = list(iteration_data["individual"].unique())[0:5]
+                individuals = list(iteration_data["individual"].unique())[0:10]
 
                 print("number replicates per plot: " + str(len(replicates)))
 
@@ -212,27 +214,48 @@ def stress_multipanel(
 
             ylab = ""
 
-            if col_i == 0:
-                ylab = "Hormone"
-
             # end the figure
             the_fig.end_block(
                     the_axis
-                    ,ylim=None
+                    ,ylim=[0,1]
                     ,y_ticks_minor = 1
                     ,x_ticks_minor = 1
-                    ,x_ticks_major_multiple = 100
-                    ,y_ticks_major_multiple = 1
+                    ,x_ticks_major_multiple = 25
+                    ,y_ticks_major_multiple = 0.25
                     ,xticks=True
-                    ,yticks=True
-                    ,title=r"$p_{\mathrm{leave}} = " + str(p_leave_i) + "$, $p_{\mathrm{arrive}} = " +str(p_arrive_i) + "$"
+                    ,yticks=col_i == 0
+                    ,title=r"$\lambda_{P\rightarrow NP} = " + str(p_leave_i) + r"$, $\lambda_{NP\rightarrow P} = " +str(p_arrive_i) + "$"
                     ,ylabel=ylab
                     )
 
-    the_fig.close()
+    # x axis label
+    the_fig.fig.text(
+            x=0.52
+            ,y = 0.02
+            ,s="Time, $t$"
+            ,fontsize=18
+            ,horizontalalignment="center"
+            ,transform = the_fig.fig.transFigure)
+    
+    # y axis label
+    the_fig.fig.text(
+            x=0.02
+            ,y = 0.52
+            ,s="Hormone level, $z$"
+            ,rotation=90
+            ,fontsize=18
+            ,horizontalalignment="center"
+            ,transform = the_fig.fig.transFigure)
 
-zmax = [10,100]
-dmax = [10,100]
+    the_fig.close(tight=True)
+
+zmax = [1]
+dmax = [1]
+ad = 2
+aP = 0.5
+
+# damage decay
+r = 1.0
 
 filename = "stress_iteration_overview"
 
@@ -242,10 +265,10 @@ for zmax_i in zmax:
         filename_sub = filename + "_dmax_" + str(dmax_i) + "_zmax_" + str(zmax_i) 
 
         stress_multipanel(
-                {"init_stress_influx": 0, "init_feedback": 0, "init_influx": 0, "cue_P": 0.8, "dmax": dmax_i, "zmax":zmax_i}
+                {"init_stress_influx": 0, "init_feedback": 0, "init_influx": 0, "cue_P": 0, "dmax": dmax_i, "zmax":zmax_i, "r":r, "ad":ad,"aP":aP}
                 ,filename_sub + "_inits0.pdf")
 
-        stress_multipanel(
-                {"init_stress_influx": 5, "init_feedback": 1, "init_influx": 1, "cue_P": 0.8, "dmax" : dmax_i, "zmax":zmax_i}
-                ,filename_sub + "_initsnonzero.pdf")
+#        stress_multipanel(
+#                {"init_stress_influx": 5, "init_feedback": 1, "init_influx": 1, "cue_P": 0.8, "dmax" : dmax_i, "zmax":zmax_i}
+#                ,filename_sub + "_initsnonzero.pdf")
 

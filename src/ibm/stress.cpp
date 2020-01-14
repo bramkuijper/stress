@@ -483,6 +483,7 @@ void survive(ofstream &datafile)
             // gets cue, spike the hormone level
             P[ind_i].hormone += 
                 0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
+            
         }
 
         clamp(P[ind_i].hormone, 0.0, zmax);
@@ -505,6 +506,8 @@ void survive(ofstream &datafile)
             // gets cue, spike the hormone level
             P[ind_i].hormone += 
                 0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
+
+            clamp(P[ind_i].hormone, 0.0, zmax);
 
             // update damage levels
             P[ind_i].damage = (1.0 - r) * P[ind_i].damage + u * P[ind_i].hormone;
