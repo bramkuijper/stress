@@ -385,6 +385,11 @@ double pkill(double const hormone_level, bool envt_is_P)
         kill_prob += (1.0 - mort_background) * (1.0 - pow(hormone_level/zmax, aP));
     }
 
+    // add baseline survival.. this is to prevent drift
+    double survival = s0 + (1.0 - s0) * (1.0 - kill_prob);
+
+    kill_prob = 1.0 - survival;
+
     assert(kill_prob >= 0);
     assert(kill_prob <= 1.0);
 
@@ -1048,6 +1053,8 @@ void write_simple_iter(ofstream &IterFile)
 
         stress = 0.0;
         stress_tplus1 = 0.0;
+            
+        IterFile << 0 << ";" << ind_i << ";" << stress << ";" << endl;
 
         // iterate the stress response for this individual
         for (int timestep = 0; timestep < tmax; ++timestep)
@@ -1056,7 +1063,7 @@ void write_simple_iter(ofstream &IterFile)
                                 + (1.0 - 0.5 * (ind.feedback[0] + ind.feedback[1]))
                                 * stress;
             
-            if (timestep == tstress)
+            if (timestep - 1 == tstress)
             {
                 stress_tplus1 += 0.5 * (ind.stress_influx[0] + ind.stress_influx[1]);
             }
