@@ -101,12 +101,12 @@ dat = pd.read_csv(sys.argv[1],
 #########################################
 
 # initialize the figure
-fig = plt.figure(figsize=(10,15))
+fig = plt.figure(figsize=(10,18))
 
 # generate the grid of the graph
 # see: 
 widths = [ 1 ]
-heights = [ 1, 1, 1, 1, 1, 1, 1]
+heights = [ 1, 1, 1, 1, 1, 1, 1, 1]
 numrows = len(heights)
 numcols  = len(widths)
 
@@ -347,11 +347,26 @@ ax.tick_params(
 
 ax = plt.subplot(gs[6,0])
 
+
+
 ax.plot(dat["generation"]
         ,dat["prop_dead"])
 
 ax.set_ylabel(r"Prob mort")
         
+ax = plt.subplot(gs[7,0])
+
+ax.plot(dat["generation"]
+        ,dat["freq_P"])
+
+ax.set_ylabel(r"Freq(P)")
+
+ax.tick_params(
+        axis="x",
+        which="both",
+        labelbottom=False)
+
+
 
 format = "png"
 

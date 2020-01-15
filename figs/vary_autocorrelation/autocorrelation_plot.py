@@ -59,7 +59,8 @@ assert(the_data.shape[0] > 0)
 # TODO select only one particular row or so 
 
 
-iterfolder = "hpcbatch_14_01_2020_225417_iter/"
+iterfolder = "hpcbatch_15_01_2020_iter/"
+####iterfolder = "hpcbatch_14_01_2020_225417_iter/"
 ############## auxiliary functions ##############
 print("it's go...")
 
@@ -230,6 +231,21 @@ def stress_multipanel(
             ,horizontalalignment="center"
             ,transform = the_fig.fig.transFigure)
     
+    translate_parameters = {
+            "init_feedback":r"Feedback $t=0$:"
+            "ad":r"$a_{d}$:"
+            "aP":r"$a_{P}$:"
+            "u":r"$u$:"
+            ,
+    # x axis label
+    the_fig.fig.text(
+            x=0.52
+            ,y = 0.02
+            ,s=
+            ,fontsize=18
+            ,horizontalalignment="left"
+            ,transform = the_fig.fig.transFigure)
+    
     # y axis label
     the_fig.fig.text(
             x=0.02
@@ -244,38 +260,41 @@ def stress_multipanel(
 
 zmax = 1
 dmax = 1
-aP = [ 0.5, 2]
-ad = [ 0.5, 2]
+aP = [ 0.5, 1, 2]
+ad = [ 0.5, 1, 2]
 
 
 # damage decay
 r = [1]
-#u = [0.25, 0.5, 0.75,1]
-u = [ 0.9 ]
+u = [0.25, 0.5, 0.75,0.9, 1]
 
 filename = "stress_iteration_overview"
 
-for aP_i in aP:
-    for ad_i in ad:
-        for r_i in r:
-            for u_i in u:
+init_feedback = [ 0, 1]
 
-                filename_sub = filename +\
-                        "_ad_" + str(ad_i) +\
-                        "_aP_" + str(aP_i) +\
-                        "_r_" + str(r_i) +\
-                        "_u_" + str(u_i)
+for init_feedback_i in init_feedback:
+    for aP_i in aP:
+        for ad_i in ad:
+            for r_i in r:
+                for u_i in u:
 
-                stress_multipanel(
-                        {"init_stress_influx": 0
-                            ,"init_feedback": 0
-                            ,"init_influx": 0
-                            ,"cue_P": 0
-                            ,"dmax": dmax
-                            ,"zmax":zmax
-                            ,"ad":ad_i
-                            ,"aP":aP_i
-                            ,"u":u_i
-                            ,"r":r_i
-                            }
-                        ,filename_sub + "_inits0.pdf")
+                    filename_sub = filename +\
+                            "_fb_" + str(init_feedback_i) +\
+                            "_ad_" + str(ad_i) +\
+                            "_aP_" + str(aP_i) +\
+                            "_r_" + str(r_i) +\
+                            "_u_" + str(u_i)
+
+                    stress_multipanel(
+                            {"init_stress_influx": 0
+                                ,"init_feedback": init_feedback_i
+                                ,"init_influx": 0
+                                ,"cue_P": 0
+                                ,"dmax": dmax
+                                ,"zmax":zmax
+                                ,"ad":ad_i
+                                ,"aP":aP_i
+                                ,"u":u_i
+                                ,"r":r_i
+                                }
+                            ,filename_sub + "_inits0.pdf")

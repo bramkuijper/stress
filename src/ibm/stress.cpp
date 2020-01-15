@@ -385,7 +385,9 @@ double pkill(double const hormone_level, bool envt_is_P)
         kill_prob += (1.0 - mort_background) * (1.0 - pow(hormone_level/zmax, aP));
     }
 
-    // add baseline survival.. this is to prevent drift
+    // add baseline survival.. if no one survivas (say, baseline
+    // hormone levels are low at the start), drift will be enormous
+    // so let's bound the survival probability
     double survival = s0 + (1.0 - s0) * (1.0 - kill_prob);
 
     kill_prob = 1.0 - survival;
