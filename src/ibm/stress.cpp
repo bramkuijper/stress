@@ -738,8 +738,9 @@ void reproduce_check(ofstream &datafile)
     // now start redistributing kids
     for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
     {
-        // kid to envt P
-        if (uniform(rng_r) < ratio_P_NP_envt)
+        // replenish numP and NP populations dependent on their 
+        // ratio in the overall population
+        if (numP < ratio_P_NP_envt * Npop)
         {
             P[numP++] = kids[kid_i];
         }
