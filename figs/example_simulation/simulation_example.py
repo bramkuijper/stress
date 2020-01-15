@@ -4,7 +4,7 @@ import itertools
 import argparse
 import pandas as pd
 import numpy as np
-import sys, re
+import sys, re, os
 from matplotlib import cm
 import matplotlib.patches as mpatches
 from matplotlib.lines import Line2D
@@ -66,6 +66,35 @@ parser.add_argument('-i'
         ,help="file containing single simulation over time")
 args = vars(parser.parse_args())
 
+
+def skip_parameters_front(filename):
+
+    """
+    opens a simulation file, reads outptu and looks for the line where
+    the data starts and the parameter listing ends
+
+    Parameters:
+    -----------
+    filename: str
+        the name fo the file containing a single simulation
+
+    Returns:
+    int
+        the line number where the data starts
+
+    """
+
+    f = open(filename)
+    fl = f.readlines()
+    f.close()
+    linerange = list(range(0,len(fl)))
+
+    for line_i in fl:
+        if re.search("generation",line_i) is not None:
+            return(line_i)
+
+
+
 def get_parameter_line(filename):
 
     """
@@ -105,13 +134,23 @@ def get_parameter_line(filename):
 ##### get the data from the simulation and select subsets #####
 
 # list of simulation files
-simulation_files = args["i"]
-line_number_end = get_parameter_line(simulation_file)
+simulation_folder = args["i"]
 
-data = pd.read_csv(
-        simulation_file
-        ,sep=";"
-        ,nrows=line_number_end)
+datasets = []
+
+file_list = os.listdir(path=simulation_folder)
+
+for file_i in file_list:
+
+    if re.search("sim_.*",file_i) is not None:
+        startline = skip_parameters_front(file_i)
+        set_i = pd.read_csv(file_i,sep=";",skiprows=parline-1)
+
+        datasets += [set_i]
+
+
+data_generation_interval = datasets[0]["generation"].max() / 6
+
 
 #### initialize figure ####
 
@@ -134,154 +173,46 @@ the_fig = multipanel.MultiPanel(
 
 
 #### phenotype ####
-phen_axis = the_fig.start_block(
+the_axis = the_fig.start_block(
             row=0
             ,col=0)
-    
+
 # dictionary with colors labels etc
 phen_dict = {
         "juv": {"color":"#ff0000", "label":r"$\bar{z}_{\mathrm{lv}}$"}
         ,"ad": {"color":"#0000ff", "label":r"$\bar{z}_{\mathrm{ad}}$"}
 }
 
-for key, value in phen_dict.items():
+stress_influx_color = "#ff0069"
+influx_color = "#00bdff"
 
-    mean_name = "meanz_" + key
-#    var_name = "varz_" + key
+for i, dataset_i in enumerate(datasets):
 
-    color = value["color"]
-    label = value["label"]
+    the_axis.plot(
+            dataset_i["generation"]
+            ,dataset_i["mean_stress_influx"]
+            ,color=stress_influx_color
+            ,label="_nolabel" if i > 0 else "Stress influx"
+            ,linewidth=1
+            )
 
-#    phen_axis.fill_between(
-#            x=data["generation"]
-#            ,y1=data[mean_name] + np.sqrt(data[var_name])
-#            ,y2=data[mean_name] - np.sqrt(data[var_name])
-#            ,color=color
-#            ,alpha=0.5
-#            ,label="_nolabel"
-#            ,linewidth=0.5)
+    the_axis.plot(
+            dataset_i["generation"]
+            ,dataset_i["mean_influx"]
+            ,color=influx_color
+            ,label="_nolabel" if i > 0 else "Baseline influx"
+            ,linewidth=1
+            )
 
-    phen_axis.plot(
-            data["generation"]
-            ,data[mean_name] 
-            ,color=color
-            ,label=label
-            ,alpha=1.0
-            ,linewidth=1)
+the_axis.legend()
 
-
-phen_axis.legend()
-
-ylim = [ -2, 2]
+ylim = [-0.05,1.05]
 
 
 # end the figure
 # see multipanel module
 the_fig.end_block(
-        phen_axis
-        ,ylim=ylim
-        ,y_ticks_minor = 5
-        ,x_ticks_minor = 5
-        ,x_ticks_major_multiple = data_generation_interval
-        ,y_ticks_major_multiple = 1
-        ,xticks=False
-        ,yticks=True
-        ,title=""
-        ,ylabel=r"Phenotypes, $z$"
-        ,xlabel=""
-        ,loc_title=True
-        )
-
-#### genetic elevation ####
-genetic_axis = the_fig.start_block(
-            row=1
-            ,col=0)
-
-mean_name = "meang"
-var_name = "varg"
-
-color = "#008c22"
-
-genetic_axis.fill_between(
-        x=data["generation"]
-        ,y1=data[mean_name] + np.sqrt(data[var_name])
-        ,y2=data[mean_name] - np.sqrt(data[var_name])
-        ,color=color
-        ,alpha=0.5
-        ,label="_nolabel"
-        ,linewidth=0.5)
-
-genetic_axis.plot(
-        data["generation"]
-        ,data[mean_name] 
-        ,color=color
-        ,label=label
-        ,alpha=1.0
-        ,linewidth=1)
-
-ylim = [-0.25,0.25]
-# end the figure
-# see multipanel module
-the_fig.end_block(
-        genetic_axis 
-        ,ylim=ylim
-        ,y_ticks_minor = 5
-        ,x_ticks_minor = 5
-        ,x_ticks_major_multiple = data_generation_interval
-        ,y_ticks_major_multiple = 0.1
-        ,xticks=True
-        ,yticks=True
-        ,title=""
-        ,ylabel=r"Elevation, $a$"
-        ,xlabel=r"Generation, $t$"
-        ,loc_title=True
-        )
-#### within-generational plasticity ####
-plasticity_axis = the_fig.start_block(
-            row=0
-            ,col=2)
-
-# dictionary with colors labels etc
-plast_dict = {
-        "juv": {"color":"#0bd9ff", "label":r"$\bar{b}_{\mathrm{lv}}$"}
-        ,"ad": {"color":"#ff0068", "label":r"$\bar{b}_{\mathrm{ad}}$"}
-}
-
-for key, value in plast_dict.items():
-
-    mean_name = "meanb_" + key
-    var_name = "varb_" + key
-
-    color = value["color"]
-    label = value["label"]
-
-    plasticity_axis.fill_between(
-            x=data["generation"]
-            ,y1=data[mean_name] + np.sqrt(data[var_name])
-            ,y2=data[mean_name] - np.sqrt(data[var_name])
-            ,color=color
-            ,alpha=0.5
-            ,label="_nolabel"
-            ,linewidth=0.5)
-
-    plasticity_axis.plot(
-            data["generation"]
-            ,data[mean_name] 
-            ,color=color
-            ,label=label
-            ,alpha=1.0
-            ,linewidth=1)
-
-
-plasticity_axis.legend()
-
-ylim = [ 0, 1]
-
-
-# end the figure
-# see multipanel module
-the_fig.end_block(
-        plasticity_axis
+        the_axis
         ,ylim=ylim
         ,y_ticks_minor = 5
         ,x_ticks_minor = 5
@@ -290,52 +221,98 @@ the_fig.end_block(
         ,xticks=False
         ,yticks=True
         ,title=""
-        ,ylabel=r"Plasticity, $b$"
+        ,ylabel=r"Influx"
+        ,xlabel=""
+        ,loc_title=True
+        )
+
+#### genetic elevation ####
+feedback_axis = the_fig.start_block(
+            row=1
+            ,col=0)
+
+feedback_color = "#53128d"
+
+for i, dataset_i in enumerate(datasets):
+    
+    feedback_axis.plot(
+            dataset_i["generation"]
+            ,1.0 - dataset_i["mean_feedback"]
+            ,color=feedback_color
+            ,label="_nolabel" if i > 0 else "Feedback"
+            ,linewidth=1
+            )
+
+ylim = [-0.05,1.05]
+# end the figure
+# see multipanel module
+the_fig.end_block(
+        feedback_axis
+        ,ylim=ylim
+        ,y_ticks_minor = 5
+        ,x_ticks_minor = 5
+        ,x_ticks_major_multiple = data_generation_interval
+        ,y_ticks_major_multiple = 0.25
+        ,xticks=True
+        ,yticks=True
+        ,title=""
+        ,ylabel=r"Feedback, $a$"
+        ,loc_title=True
+        )
+
+#### hormone ####
+hormone_axis = the_fig.start_block(
+            row=0
+            ,col=2)
+
+hormone_color = "#5c8d12"
+
+for i, dataset_i in enumerate(datasets):
+
+    hormone_axis.plot(
+            dataset_i["generation"]
+            ,dataset_i["mean_hormone"] 
+            ,color=hormone_color
+            ,alpha=1.0
+            ,linewidth=1)
+
+ylim = [ -0.05, 1.05]
+
+# end the figure
+# see multipanel module
+the_fig.end_block(
+        hormone_axis
+        ,ylim=ylim
+        ,y_ticks_minor = 5
+        ,x_ticks_minor = 5
+        ,x_ticks_major_multiple = data_generation_interval
+        ,y_ticks_major_multiple = 0.25
+        ,xticks=False
+        ,yticks=True
+        ,title=""
+        ,ylabel=r"Hormone, $z$"
         ,xlabel=""
         ,loc_title=True
         )
 
 
 #### first within-generational plasticity ####
-mat_axis = the_fig.start_block(
-            row=1
-            ,col=2)
+damage_axis = the_fig.start_block(
+            row=0
+            ,col=3)
 
-# dictionary with colors labels etc
-mat_dict = {
-        "juv": {"color":"#0bd9ff", "label":r"$\bar{m}_{\mathrm{lv}}$"}
-        ,"ad": {"color":"#ff0068", "label":r"$\bar{m}_{\mathrm{ad}}$"}
-}
+damage_color = "#8d4112"
 
-for key, value in mat_dict.items():
+for i, dataset_i in enumerate(datasets):
 
-    mean_name = "meanm_m_" + key
-    var_name = "varm_m_" + key
-
-    color = value["color"]
-    label = value["label"]
-
-    mat_axis.fill_between(
-            x=data["generation"]
-            ,y1=data[mean_name] - np.sqrt(data[var_name])
-            ,y2=data[mean_name] + np.sqrt(data[var_name])
-            ,color=color
-            ,alpha=0.5
-            ,label="_nolabel"
-            ,linewidth=0.5)
-
-    mat_axis.plot(
+    damage_axis.plot(
             data["generation"]
-            ,data[mean_name] 
-            ,color=color
-            ,label=label
+            ,data["mean_damage"] 
+            ,color=damage_color
             ,alpha=1.0
             ,linewidth=1)
 
-
-mat_axis.legend()
-
-ylim = [ -0.25, 1]
+ylim = [ -0.05, 1.05 ] 
 
 the_fig.end_block(
         mat_axis
@@ -344,46 +321,11 @@ the_fig.end_block(
         ,x_ticks_minor = 5
         ,x_ticks_major_multiple = data_generation_interval
         ,y_ticks_major_multiple = 0.25
-        ,xticks=False
-        ,yticks=True
-        ,title=""
-        ,ylabel=r"Maternal effect, $m$"
-        ,xlabel=""
-        ,loc_title=True
-        )
-
-
-
-#### environment ####
-envt_axis = the_fig.start_block(
-            row=2
-            ,col=2)
-
-color = "#ac7c00"
-
-envt_axis.plot(
-        data["generation"]
-        ,data["epsilon"] 
-        ,color=color
-        ,alpha=1.0
-        ,linewidth=0.5)
-
-ylim = [ -2.5,2.5]
-
-# end the figure
-# see multipanel module
-the_fig.end_block(
-        envt_axis 
-        ,ylim=ylim
-        ,y_ticks_minor = 5
-        ,x_ticks_minor = 5
-        ,x_ticks_major_multiple = data_generation_interval
-        ,y_ticks_major_multiple = 1
         ,xticks=True
         ,yticks=True
         ,title=""
-        ,ylabel=r"Standardized temperature, $\varepsilon$"
-        ,xlabel=r"Generation, $t$"
+        ,ylabel=r"Damage"
+        ,xlabel=r"Time, $t$"
         ,loc_title=True
         )
 
