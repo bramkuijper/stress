@@ -49,7 +49,6 @@ mpl.rcParams["svg.fonttype"] = "none"
 
 
 ### read in the data
-#the_data = pd.read_csv("summary_29_04_stress_curves.csv",sep=";")
 the_data = pd.read_csv("summary_vary_autocorrelation_new.csv",sep=";")
 
 #the_data = the_data.loc[(the_data["sP2NP_1"].isin([0.01,0.1,0.2,0.5]))
@@ -60,13 +59,7 @@ assert(the_data.shape[0] > 0)
 # TODO select only one particular row or so 
 
 
-#iterfolder = "hpcbatch_29_04_2019_223611_iters"
-#iterfolder = "hpcbatch_01_06_2019_221111_iters/"
-#iterfolder = "hpcbatch_07_01_2020_005925_iters/"
-#iterfolder = "hpcbatch_07_01_2020_113528_iters/"
-#iterfolder = "hpcbatch_07_01_2020_113528_iters/"
-#iterfolder = "hpcbatch_07_01_2020_124016_iters/"
-iterfolder = "hpcbatch_14_01_2020_135151_iters/"
+iterfolder = "hpcbatch_14_01_2020_225417_iter/"
 ############## auxiliary functions ##############
 print("it's go...")
 
@@ -249,26 +242,40 @@ def stress_multipanel(
 
     the_fig.close(tight=True)
 
-zmax = [1]
-dmax = [1]
-ad = 2
-aP = 0.5
+zmax = 1
+dmax = 1
+aP = [ 0.5, 2]
+ad = [ 0.5, 2]
+
 
 # damage decay
-r = 1.0
+r = [1]
+#u = [0.25, 0.5, 0.75,1]
+u = [ 0.9 ]
 
 filename = "stress_iteration_overview"
 
-for zmax_i in zmax:
-    for dmax_i in dmax:
+for aP_i in aP:
+    for ad_i in ad:
+        for r_i in r:
+            for u_i in u:
 
-        filename_sub = filename + "_dmax_" + str(dmax_i) + "_zmax_" + str(zmax_i) 
+                filename_sub = filename +\
+                        "_ad_" + str(ad_i) +\
+                        "_aP_" + str(aP_i) +\
+                        "_r_" + str(r_i) +\
+                        "_u_" + str(u_i)
 
-        stress_multipanel(
-                {"init_stress_influx": 0, "init_feedback": 0, "init_influx": 0, "cue_P": 0, "dmax": dmax_i, "zmax":zmax_i, "r":r, "ad":ad,"aP":aP}
-                ,filename_sub + "_inits0.pdf")
-
-#        stress_multipanel(
-#                {"init_stress_influx": 5, "init_feedback": 1, "init_influx": 1, "cue_P": 0.8, "dmax" : dmax_i, "zmax":zmax_i}
-#                ,filename_sub + "_initsnonzero.pdf")
-
+                stress_multipanel(
+                        {"init_stress_influx": 0
+                            ,"init_feedback": 0
+                            ,"init_influx": 0
+                            ,"cue_P": 0
+                            ,"dmax": dmax
+                            ,"zmax":zmax
+                            ,"ad":ad_i
+                            ,"aP":aP_i
+                            ,"u":u_i
+                            ,"r":r_i
+                            }
+                        ,filename_sub + "_inits0.pdf")
