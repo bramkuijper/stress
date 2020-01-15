@@ -385,6 +385,11 @@ double pkill(double const hormone_level, bool envt_is_P)
         kill_prob += (1.0 - mort_background) * (1.0 - pow(hormone_level/zmax, aP));
     }
 
+    // add baseline survival.. this is to prevent drift
+    double survival = s0 + (1.0 - s0) * (1.0 - kill_prob);
+
+    kill_prob = 1.0 - survival;
+
     assert(kill_prob >= 0);
     assert(kill_prob <= 1.0);
 
@@ -503,7 +508,8 @@ void survive(ofstream &datafile)
         }
         else // Individual survived. 
         {
-            // gets cue, spike the hormone level
+            // gets attacked, spike the hormone level
+            // so if
             P[ind_i].hormone += 
                 0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
 
@@ -603,7 +609,7 @@ void survive(ofstream &datafile)
 }
 
 
-// check reproduction
+// failsafe function to do reproduction
 void reproduce_check(ofstream &datafile)
 {
     assert(numP >= 0);
@@ -612,6 +618,7 @@ void reproduce_check(ofstream &datafile)
     assert(numP + numNP <= Npop);
 
     // number of offspring to be made
+    // equal to individuals who have died
     int Noffspring = Npop - numP - numNP;
 
     assert(Noffspring >= 0);
@@ -622,6 +629,7 @@ void reproduce_check(ofstream &datafile)
         return;
     }
 
+    // stack of offspring that is going to be created
     Individual kids[Noffspring];
 
     double cumul_deviate = 0;
@@ -662,13 +670,13 @@ void reproduce_check(ofstream &datafile)
             }
         }
         
-        // then obtain father from cumul dist
+        // then obtain mother from cumul dist
         cumul_deviate = uniform(rng_r) * sum_fecundity;
 
         assert(cumul_deviate >= 0);
         assert(cumul_deviate <= sum_fecundity);
 
-        for (int ind_i = numP; ind_i < numP + numNP; ++ind_i)
+        for (int ind_i = 0; ind_i < numP + numNP; ++ind_i)
         {
             assert(ind_i >= 0);
             assert(ind_i < numP + numNP);
@@ -1045,6 +1053,8 @@ void write_simple_iter(ofstream &IterFile)
 
         stress = 0.0;
         stress_tplus1 = 0.0;
+            
+        IterFile << 0 << ";" << ind_i << ";" << stress << ";" << endl;
 
         // iterate the stress response for this individual
         for (int timestep = 0; timestep < tmax; ++timestep)
@@ -1053,7 +1063,7 @@ void write_simple_iter(ofstream &IterFile)
                                 + (1.0 - 0.5 * (ind.feedback[0] + ind.feedback[1]))
                                 * stress;
             
-            if (timestep == tstress)
+            if (timestep - 1 == tstress)
             {
                 stress_tplus1 += 0.5 * (ind.stress_influx[0] + ind.stress_influx[1]);
             }
