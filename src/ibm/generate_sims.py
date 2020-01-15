@@ -49,7 +49,7 @@ nrep = 20
 
 ctr = 0
 
-init_feedback = [1.0]
+init_feedback = [0]
 init_stress_influx = [0]
 init_influx = [0]
 

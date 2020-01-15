@@ -728,19 +728,18 @@ void reproduce_check(ofstream &datafile)
     
     // now distribute kids over the environments
     
-    // calculate ratio of the P envt relative to the other envts
-    double ratio_P_NP_envt = s_NP_2_P[current_world] / 
+    // calculate target population size of numP 
+    // (and numNP = Npop - numP)
+    // after offspring have replaced dead adults
+    int numPtarget = (double) Npop * s_NP_2_P[current_world] / 
         (s_P_2_NP[current_world] + s_NP_2_P[current_world]);
-
-    assert(ratio_P_NP_envt >= 0);
-    assert(ratio_P_NP_envt <= 1);
 
     // now start redistributing kids
     for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
     {
         // replenish numP and NP populations dependent on their 
         // ratio in the overall population
-        if (numP < ratio_P_NP_envt * Npop)
+        if (numP < numPtarget)
         {
             P[numP++] = kids[kid_i];
         }
