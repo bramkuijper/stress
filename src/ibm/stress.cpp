@@ -42,7 +42,7 @@ bernoulli_distribution random_allele(0.5);
 
 
 // number of generations
-const long int NumGen = 100000;
+const long int NumGen = 200000;
 
 // population size
 const int Npop = 5000; 
@@ -108,10 +108,17 @@ double dmax = 0;
 double zmax = 0;
 double r = 0;
 double u = 0;
-int death_t = 0;
+
+// mortalities across the two environments 
+int Nmort_stats[2] = {0,0};
 
 // which of the two world currently applies
 bool current_world = false;
+
+// vector with doubles on cumulative damage levels
+double fecundity_cumul[Npop];
+double sum_fecundity;
+double fecundity_stats[2];
 
 
 // the individual struct
@@ -145,10 +152,6 @@ typedef Individual Population[Npop];
 // also make two stacks for the new populations after 
 // environmental change
 Population P, NP, Pnew, NPnew;
-
-// vector with doubles on cumulative damage levels
-double fecundity_cumul[Npop];
-double sum_fecundity;
 
 // initialize simulations from command line arguments
 void init_arguments(int argc, char *argv[])
@@ -462,7 +465,15 @@ void survive(ofstream &datafile)
 {
     sum_fecundity = 0.0;
 
-    death_t = 0;
+    // reset fecundity averages
+    // that are tracked for stats
+    fecundity_stats[0] = 0.0;
+    fecundity_stats[1] = 0.0;
+
+    // reset numbers of dead individuals
+    // that are tracked for stats
+    Nmort_stats[0] = 0;
+    Nmort_stats[1] = 0;
 
     assert(numP >= 0);
     assert(numNP >= 0);
@@ -498,7 +509,7 @@ void survive(ofstream &datafile)
         // OK, did not survive dependent on the level of stress & damage
         if (uniform(rng_r) < pkill(P[ind_i].hormone, true))
         {
-            ++death_t;
+            ++Nmort_stats[0];
             // delete individual from stack
             P[ind_i] = P[--numP];
             --ind_i;
@@ -531,6 +542,8 @@ void survive(ofstream &datafile)
         }
     } // end for (int ind_i = 0; ind_i < numP; ++ind_i)
 
+    fecundity_stats[0] = sum_fecundity;
+
     // survival in the NP population
     for (int ind_i = 0; ind_i < numNP; ++ind_i)
     {
@@ -560,7 +573,7 @@ void survive(ofstream &datafile)
         // individual did not survive 
         if (uniform(rng_r) < pkill(NP[ind_i].hormone, false))
         {
-            ++death_t;
+            ++Nmort_stats[1];
             // delete individual from stack
             NP[ind_i] = NP[--numNP];
             --ind_i;
@@ -591,6 +604,13 @@ void survive(ofstream &datafile)
             sum_fecundity = fecundity_cumul[numP + ind_i];
         }
     } // end for for (int ind_i = 0; ind_i < numNP; ++ind_i)
+
+    // update fecundity stats
+    fecundity_stats[1] = sum_fecundity - fecundity_stats[0];
+
+    // take averages of fecundity stats
+    fecundity_stats[0] /= numP;
+    fecundity_stats[1] /= numNP;
 
     assert(numP >= 0);
     assert(numNP >= 0);
@@ -656,7 +676,8 @@ void reproduce_check(ofstream &datafile)
         assert(mother < Npop);
         assert(mother >= 0);
 
-        // first obtain father from cumul dist
+        // obtain father from cumulative fecundity 
+        // distribution
         cumul_deviate = uniform(rng_r) * sum_fecundity;
 
         for (int ind_i = 0; ind_i < numP + numNP; ++ind_i)
@@ -672,7 +693,8 @@ void reproduce_check(ofstream &datafile)
             }
         }
         
-        // then obtain mother from cumul dist
+        // obtain mother from cumulative fecundity 
+        // distribution
         cumul_deviate = uniform(rng_r) * sum_fecundity;
 
         assert(cumul_deviate >= 0);
@@ -992,7 +1014,10 @@ void write_data(ofstream &DataFile)
         << var_influx << ";"
         << var_hormone << ";"
         << var_damage << ";" 
-        << (double)death_t/Npop << ";" 
+        << (double)Nmort_stats[0]/((double)Npop * s_NP_2_P[current_world] / (s_NP_2_P[current_world] + s_NP_2_P[current_world])) << ";" 
+        << (double)Nmort_stats[1]/((double)Npop * s_P_2_NP[current_world] / (s_NP_2_P[current_world] + s_NP_2_P[current_world])) << ";" 
+        << (double)fecundity_stats[0] << ";" 
+        << (double)fecundity_stats[1] << ";" 
         << endl;
 }
 
@@ -1011,7 +1036,10 @@ void write_data_headers(ofstream &DataFile)
         << "var_influx" << ";"
         << "var_hormone" << ";"
         << "var_damage" << ";" 
-        << "prop_dead" << ";"
+        << "prop_dead_P" << ";"
+        << "prop_dead_NP" << ";"
+        << "mean_fecundity_P" << ";"
+        << "mean_fecundity_NP" << ";"
         << endl;
 }
 

@@ -65,7 +65,22 @@ def find_parameter_linenum(filename):
     return(len(fl))
 
 
-def check_params_first(file):
+def check_params_first(file, regex=r"^generation"):
+
+    """
+    gets first line of dataset if parameters
+    are printed before the actual data
+
+    Parameters:
+    -----------
+    file:   str
+        name of the data file
+
+    Returns:
+    --------
+    linenum: int
+        line number in file where data header starts
+    """
 
     f = open(file)
     fl = f.readlines()
@@ -73,7 +88,7 @@ def check_params_first(file):
 
     for linenum, line in enumerate(fl):
 
-        if re.search(r"^generation", line) is not None:
+        if re.search(regex, line) is not None:
 
             return(linenum)
 
@@ -106,7 +121,7 @@ fig = plt.figure(figsize=(10,18))
 # generate the grid of the graph
 # see: 
 widths = [ 1 ]
-heights = [ 1, 1, 1, 1, 1, 1, 1, 1]
+heights = [ 1 for i in range(0,9) ]
 numrows = len(heights)
 numcols  = len(widths)
 
@@ -340,25 +355,37 @@ ax.plot(
 ax.set_ylabel(r"Stress response" + "\n" + r"to stimulus at $t=10$")
 ax.set_xlabel(r"Time")
 
+
+#### mortality  ####
+ax = plt.subplot(gs[6,0])
+
+ax.plot(dat["generation"]
+        ,dat["prop_dead_P"]
+        ,label="P"
+        )
+
+ax.plot(dat["generation"]
+        ,dat["prop_dead_NP"]
+        ,label="NP"
+        )
+
+ax.set_ylim([-0.05,1.05])
+ax.legend()
+
+ax.set_ylabel(r"Prob mort")
+
 ax.tick_params(
         axis="x",
         which="both",
         labelbottom=False)
-
-ax = plt.subplot(gs[6,0])
-
-
-
-ax.plot(dat["generation"]
-        ,dat["prop_dead"])
-
-ax.set_ylabel(r"Prob mort")
         
+#### frequency of P individuals ####
 ax = plt.subplot(gs[7,0])
 
 ax.plot(dat["generation"]
         ,dat["freq_P"])
 
+ax.set_ylim([-0.05,1.05])
 ax.set_ylabel(r"Freq(P)")
 
 ax.tick_params(
@@ -366,6 +393,24 @@ ax.tick_params(
         which="both",
         labelbottom=False)
 
+
+#### fecundity ####
+
+ax = plt.subplot(gs[8,0])
+
+ax.plot(dat["generation"]
+        ,dat["mean_fecundity_P"]
+        ,label="P"
+        )
+
+ax.plot(dat["generation"]
+        ,dat["mean_fecundity_NP"]
+        ,label="NP"
+        )
+ax.legend()
+
+ax.set_ylim([-0.05,1.05])
+ax.set_ylabel(r"Fecundity")
 
 
 format = "png"
