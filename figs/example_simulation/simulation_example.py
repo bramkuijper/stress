@@ -62,7 +62,6 @@ parser = argparse.ArgumentParser()
 # specify output file name
 parser.add_argument('-o', default="example_simulation.pdf")
 parser.add_argument('-i'
-        ,nargs="+" # provide multiple simulation files
         ,help="file containing single simulation over time")
 args = vars(parser.parse_args())
 
@@ -89,8 +88,8 @@ def skip_parameters_front(filename):
     f.close()
     linerange = list(range(0,len(fl)))
 
-    for line_i in fl:
-        if re.search("generation",line_i) is not None:
+    for line_i in linerange:
+        if re.search("generation",fl[line_i]) is not None:
             return(line_i)
 
 
@@ -138,18 +137,23 @@ simulation_folder = args["i"]
 
 datasets = []
 
-file_list = os.listdir(path=simulation_folder)
+sim_dir = os.path.join(os.getcwd(), simulation_folder)
+
+file_list = os.listdir(path=sim_dir)
 
 for file_i in file_list:
 
-    if re.search("sim_.*",file_i) is not None:
-        startline = skip_parameters_front(file_i)
-        set_i = pd.read_csv(file_i,sep=";",skiprows=parline-1)
+    if re.search("sim_.*\d$",file_i) is not None:
+
+        filename = os.path.join(sim_dir, file_i)
+        startline = skip_parameters_front(filename)
+        set_i = pd.read_csv(filename,sep=";",skiprows=startline)
+
+        print(set_i.columns.values)
 
         datasets += [set_i]
 
-
-data_generation_interval = datasets[0]["generation"].max() / 6
+data_generation_interval = datasets[0]["generation"].max() / 5
 
 
 #### initialize figure ####
@@ -164,11 +168,12 @@ data_generation_interval = datasets[0]["generation"].max() / 6
 # give the figure twice as many columns as omega values
 # as each block contains one panel for Sonora and one for Catalina
 the_fig = multipanel.MultiPanel(
-        panel_widths=[1,0.1,1]
-        ,panel_heights=[1,1,1,1]
+        panel_widths=[1]
+        ,panel_heights=[1,1,1,1,1]
         ,filename=args["o"] # value of the output file
         ,width=15
-        ,height=15
+        ,height=20
+        ,hspace=0.5
         )
 
 
@@ -256,14 +261,14 @@ the_fig.end_block(
         ,xticks=True
         ,yticks=True
         ,title=""
-        ,ylabel=r"Feedback, $a$"
+        ,ylabel=r"Feedback $m | z_{t+1} = m z_{t}$"
         ,loc_title=True
         )
 
 #### hormone ####
 hormone_axis = the_fig.start_block(
-            row=0
-            ,col=2)
+            row=2
+            ,col=0)
 
 hormone_color = "#5c8d12"
 
@@ -298,16 +303,16 @@ the_fig.end_block(
 
 #### first within-generational plasticity ####
 damage_axis = the_fig.start_block(
-            row=0
-            ,col=3)
+            row=3
+            ,col=0)
 
 damage_color = "#8d4112"
 
 for i, dataset_i in enumerate(datasets):
 
     damage_axis.plot(
-            data["generation"]
-            ,data["mean_damage"] 
+            dataset_i["generation"]
+            ,dataset_i["mean_damage"] 
             ,color=damage_color
             ,alpha=1.0
             ,linewidth=1)
@@ -315,7 +320,7 @@ for i, dataset_i in enumerate(datasets):
 ylim = [ -0.05, 1.05 ] 
 
 the_fig.end_block(
-        mat_axis
+        damage_axis
         ,ylim=ylim
         ,y_ticks_minor = 5
         ,x_ticks_minor = 5

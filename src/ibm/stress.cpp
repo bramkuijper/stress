@@ -328,7 +328,7 @@ void create_offspring(
                 sdmu
                 );
 
-        clamp(kid.stress_influx[allele_i], 0.0, DBL_MAX);
+        clamp(kid.stress_influx[allele_i], 0.0, 1.0);
 
 
         // inherit the baseline influx allele
@@ -343,7 +343,7 @@ void create_offspring(
                 mu_influx, 
                 sdmu);
         
-        clamp(kid.influx[allele_i], 0.0, DBL_MAX);
+        clamp(kid.influx[allele_i], 0.0, 1.0);
     } // inheritance done
 
     // set hormone level and damage to their baseline values
