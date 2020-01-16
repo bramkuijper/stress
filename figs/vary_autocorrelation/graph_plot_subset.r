@@ -3,10 +3,10 @@
 the.data <- read.table("summary_vary_autocorrelation_new.csv",header=T,sep=";")
 
 init_feedback <- 0.0
-ad <- 0.5
-aP <- 0.5
+ad <- 1.0
+aP <- 1.0
 r <- 1
-u <- 0.5
+u <- 0.75
 sNP2P_1 <- 0.01
 sP2NP_1 <- 0.01
 

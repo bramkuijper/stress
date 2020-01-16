@@ -59,7 +59,7 @@ assert(the_data.shape[0] > 0)
 # TODO select only one particular row or so 
 
 
-iterfolder = "hpcbatch_15_01_2020_iter/"
+iterfolder = "hpcbatch_16_01_2020_iter/"
 ####iterfolder = "hpcbatch_14_01_2020_225417_iter/"
 ############## auxiliary functions ##############
 print("it's go...")
@@ -211,7 +211,7 @@ def stress_multipanel(
             # end the figure
             the_fig.end_block(
                     the_axis
-                    ,ylim=[0,1]
+                    ,ylim=[-0.05,1.05]
                     ,y_ticks_minor = 1
                     ,x_ticks_minor = 1
                     ,x_ticks_major_multiple = 25
@@ -230,18 +230,26 @@ def stress_multipanel(
             ,fontsize=18
             ,horizontalalignment="center"
             ,transform = the_fig.fig.transFigure)
-    
+
+    # make string of parameter values and put on plot
     translate_parameters = {
-            "init_feedback":r"Feedback $t=0$:"
-            "ad":r"$a_{d}$:"
-            "aP":r"$a_{P}$:"
-            "u":r"$u$:"
-            ,
+            "init_feedback":r"$\mathrm{Feedback}_{t_{0}}$:"
+            ,"ad":r"$a_{d}$:"
+            ,"aP":r"$a_{P}$:"
+            ,"u":r"$u$:"
+            ,"r":r"$r$:"
+            }
+
+    param_str = ""
+    for param_key, param_val in parameter_dict.items():
+        if param_key in translate_parameters.keys():
+            param_str += translate_parameters[param_key] + str(param_val) + " "
+
     # x axis label
     the_fig.fig.text(
-            x=0.52
+            x=0.2
             ,y = 0.02
-            ,s=
+            ,s=param_str
             ,fontsize=18
             ,horizontalalignment="left"
             ,transform = the_fig.fig.transFigure)
