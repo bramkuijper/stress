@@ -33,8 +33,13 @@ s_12 = [[ 0.1,0.1]]
 cue_P = [ 0.0 ]
 cue_NP = [ 0.0 ]
 
-s0 = [ 0.1]
-ad = [ 2 ]
+# baseline survival
+s0 = [ 0.1 ]
+
+# power of the damage cost function
+ad = [ 0.5 ]
+
+# power of the hormone level survival function
 aP = [ 0.5 ]
 
 dmax = [ 1 ]
@@ -42,10 +47,10 @@ zmax = [ 1 ]
 
 damage_decay = [ 1.0 ]
 
-damage_due_to_hormone = [ 0.75 ]
+damage_due_to_hormone = [ 0.5 ]
 
 # number of replicates
-nrep = 20
+nrep = 1
 
 ctr = 0
 

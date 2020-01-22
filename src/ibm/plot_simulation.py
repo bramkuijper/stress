@@ -154,7 +154,7 @@ ax.fill_between(
     linewidth=0
     )
 
-ax.set_ylabel("Mean" + "\n" +  r"Feedback$\pm$SD")
+ax.set_ylabel(r"Feedback, $f$" + "\n" + r"where $h_{t+1} = (1-f) h_{t}$")
 
 ax.tick_params(
     axis="x",
@@ -321,6 +321,9 @@ for i in range(0,nrep):
         if t == 10:
             stress[t+1] += stress_influx_val
 
+        if stress[t+1] > 1.0:
+            stress[t+1] = 1.0
+
     # plot each individual stress curve
     ax.plot(
             time[5:]
@@ -341,6 +344,9 @@ for t in time[0:-1]:
 
     if t == 10:
         stress[t+1] += stress_influx
+        
+    if stress[t+1] > 1.0:
+        stress[t+1] = 1.0
 
 ax.plot(
         time[5:]
@@ -350,7 +356,7 @@ ax.plot(
         ,color="black")
 
 
-#ax.set_ylim(0, zt + 4*var_zt)
+ax.set_ylim([-0.05, 1.05])
 
 ax.set_ylabel(r"Stress response" + "\n" + r"to stimulus at $t=10$")
 ax.set_xlabel(r"Time")
