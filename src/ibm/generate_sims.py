@@ -42,9 +42,6 @@ ad = [ 0.5 ]
 # power of the hormone level survival function
 aP = [ 0.5 ]
 
-dmax = [ 1 ]
-zmax = [ 1 ]
-
 damage_decay = [ 1.0 ]
 
 damage_due_to_hormone = [ 0.5 ]
@@ -79,46 +76,53 @@ for rep_i in range(0,nrep):
                 for sdmu_i in sdmu:
                     for s_P2NP_i in s_P2NP:
                         for s_NP2P_i in s_NP2P:
-                            for s_12_i in s_12:
-                                for cue_P_i in cue_P:
-                                    for cue_NP_i in cue_NP:
-                                        for s0_i in s0:
-                                            for ad_i in ad:
-                                                for aP_i in aP:
-                                                    for dmax_i in dmax:
-                                                        for zmax_i in zmax:
-                                                            for r_i in damage_decay:
-                                                                for u_i in damage_due_to_hormone:
-                                                                    for init_feedback_i in init_feedback:
-                                                                        for init_stress_influx_i in init_stress_influx:
-                                                                            for init_influx_i in init_influx:
+                            for cue_P_i in cue_P:
+                                for cue_NP_i in cue_NP:
+                                    for s0_i in s0:
+                                        for ad_i in ad:
+                                            for aP_i in aP:
+                                                for r_i in damage_decay:
+                                                    for u_i in damage_due_to_hormone:
+                                                        for init_feedback_i in init_feedback:
+                                                            for init_stress_influx_i in init_stress_influx:
+                                                                for init_influx_i in init_influx:
 
-                                                                                ctr += 1
-                                                                                print("echo " + str(ctr))
+                                                                    ctr += 1
+                                                                    print("echo " + str(ctr))
 
-                                                                                print(exe + " " 
-                                                                                        + str(mu_feedback_i) + " " 
-                                                                                        + str(mu_stress_influx_i) + " " 
-                                                                                        + str(mu_influx_i) + " " 
-                                                                                        + str(sdmu_i) + " " 
-                                                                                        + str(s_P2NP_i[0]) + " " 
-                                                                                        + str(s_P2NP_i[1]) + " " 
-                                                                                        + str(s_NP2P_i[0]) + " " 
-                                                                                        + str(s_NP2P_i[1]) + " " 
-                                                                                        + str(s_12_i[0]) + " " 
-                                                                                        + str(s_12_i[1]) + " " 
-                                                                                        + str(init_feedback_i) + " " 
-                                                                                        + str(init_stress_influx_i) + " " 
-                                                                                        + str(init_influx_i) + " " 
-                                                                                        + str(cue_P_i) + " " 
-                                                                                        + str(cue_NP_i) + " " 
-                                                                                        + str(s0_i) + " " 
-                                                                                        + str(ad_i) + " " 
-                                                                                        + str(aP_i) + " " 
-                                                                                        + str(dmax_i) + " " 
-                                                                                        + str(zmax_i) + " " 
-                                                                                        + str(r_i) + " " 
-                                                                                        + str(u_i) + " " 
-                                                                                        + str(mort_background) + " " 
-                                                                                        + str(background_str)
-                                                                                        )
+                                                                    basename = "sim_stress_" + f"{0:%d}_{0:%m}_{0:%Y}_{0:%
+
+                                                                    print(exe + " " 
+                                                                            + str(mu_feedback_i) + " " 
+                                                                            + str(mu_cue_influx_i) + " " 
+
+                                                                            + str(mu_stress_influx_i) + " " 
+                                                                            + str(mu_influx_i) + " " 
+
+                                                                            + str(sdmu_i) + " " 
+                                                                            + str(s_P2NP_i[0]) + " " 
+
+                                                                            + str(s_P2NP_i[1]) + " " 
+                                                                            + str(init_feedback_i) + " " 
+
+                                                                            + str(init_cue_influx_i) + " " 
+                                                                            + str(init_stress_influx_i) + " " 
+
+                                                                            + str(init_influx_i) + " " 
+                                                                            + str(cue_P_i) + " " 
+
+                                                                            + str(cue_NP_i) + " " 
+                                                                            + str(ad_i) + " " 
+
+                                                                            + str(aP_i) + " " 
+                                                                            + str(r_i) + " " 
+
+                                                                            + str(u_i) + " " 
+                                                                            + str(mort_background) + " " 
+
+                                                                            + str(p_att_i) + " " 
+                                                                            + str(0) + " " 
+
+                                                                            + base_name + " "
+                                                                            + str(background_str)
+                                                                            )

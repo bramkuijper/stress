@@ -1,6 +1,14 @@
 // the evolution of the stress response in a fluctuating envt
 // Bram Kuijper
-//  
+//
+
+// Note from Olle: in this version I removed many commented away sections and
+// introduced separate stress_influx (response to actual predator attack) and
+// cue_influx (response to predator cue)
+
+// The NDEBUG macro should be defined (before including <cassert>) if we DON'T
+// want to do debugging (using the assert macro)
+#define NDEBUG
 
 // important libraries
 #include <ctime>
@@ -16,41 +24,25 @@
 #include <vector>
 #include <random>
 
-
-// various functions, such as unique filename creation
-// which helps when running multiple instances of simulation
-// in the same folder
-#include "auxiliary.hpp"
-
-//#define NDEBUG
-//
-// the debug sign should only be turned on when one wants
-// to assess the complete distribution of phenotypes
-// 
-
-using namespace std;
-
-
-// set up the random number generator
-// set random seed etc
-int seed = get_nanoseconds();
-mt19937 rng_r{static_cast<unsigned int>(seed)};
-uniform_real_distribution<> uniform(0.0,1.0);
+std::random_device rd;
+unsigned seed = rd();
+std::mt19937 rng_r(seed);
+std::uniform_real_distribution<> uniform(0.0,1.0);
 
 // for meiotic segregation
-bernoulli_distribution random_allele(0.5);
+std::bernoulli_distribution random_allele(0.5);
 
 
-// number of generations
-const long int NumGen = 200000;
+// maximum number of timesteps of the simulation
+int maxtime = 30;
 
 // population size
-const int Npop = 5000; 
+const int Npop = 5000;
 
 // number of generations to skip when outputting data
-const long int skip = 100;
+const int skip = 500;
 
-// track population sizes in each of the environments
+// track population sizes in each of the environments (bookkeeping)
 int numP = 0;
 int numNP = 0;
 
@@ -58,10 +50,11 @@ int numNP = 0;
 bool do_stats = 0;
 
 // keep track of the current generation number
-long int generation = 0;
+int generation = 0;
 
 // mutation rate parameters
 double mu_feedback = 0.0;
+double mu_cue_influx = 0.0;
 double mu_stress_influx = 0.0;
 double mu_influx = 0.0;
 double sdmu = 0.0;
@@ -70,116 +63,125 @@ double sdmu = 0.0;
 double mort_background = 0.0;
 
 // environmental switching parameters
-// indices here indicate world 1
-// and world 2, to include development
-// if development is absent, values for
-// switch rates are identical
-//
 // switch rate from P to NP
-double s_P_2_NP[2] = {0.0,0.0};
-
+double s_P_2_NP = 0.0;
 // switch rate from NP to P
-double s_NP_2_P[2] = {0.0,0.0};
+double s_NP_2_P = 0.0;
 
-// per generation 
-// switching probability from world 1 to 2
-// and from world 2 to 1
-double s_12[2] = {0.0, 0.0};
+// probability of attack if predator is nearby
+double p_att = 1.0;
+
+// for convenience (and speed), introduce (equilibrium) probabilities of the
+// environment being P
+double pr_envt_is_P = 0.0;
 
 // initial values for the evolving traits
-double init_feedback = 0.0;
-double init_stress_influx = 0.0;
-double init_influx = 0.0;
+double init_lfeedback = 0.0;
+double init_lcue_influx = 0.0;
+double init_lstress_influx = 0.0;
+double init_linflux = 0.0;
 
 // cue probabilities
-// this is the cue that is given before 
+// this is the cue that is given before
 // a predation potentially happens
 // if the cue is equal in environments P or NP
 // then it is uninformative
 double cue_P = 0.0;
 double cue_NP = 0.0;
 
-// baseline survival rate
-double s0 = 0;
-
-double ad = 0;
-double aP = 0;
-double dmax = 0;
-double zmax = 0;
+double ad = 1.0;
+double aP = 1.0;
 double r = 0;
 double u = 0;
 
-// mortalities across the two environments 
+// parameters for input/output of pop to text file; they are read from the
+// command line
+int ioind = 0; // 0 = none; 1 = output to file; 2 = both in/output
+std::string base_name;
+
+// mortalities across the two environments in the order NP, P
 int Nmort_stats[2] = {0,0};
 
-// which of the two world currently applies
-bool current_world = false;
+// keep track of number of living individuals in pop (for bookkeeping)
+int num_alive = Npop;
 
-// vector with doubles on cumulative damage levels
-double fecundity_cumul[Npop];
-double sum_fecundity;
 double fecundity_stats[2];
 
 
 // the individual struct
 struct Individual
 {
+    // assume alleles are on logit scale
+
     // diploid loci specifying the evolving traits
     //
     // self-dependent increase/decrease in hormone
-    double feedback[2];
+    double lfeedback[2];
 
-    // influx of new hormone when encountering stress
-    double stress_influx[2];
+    // influx of new hormone when encountering predator cue
+    double lcue_influx[2];
+
+    // influx of new hormone when encountering predator attack
+    double lstress_influx[2];
 
     // stress independent hormone influx
-    double influx[2];
+    double linflux[2];
 
     // components of the individual's state
     double hormone; // current hormone level
-    double damage; // current damage level
+    double damage;  // current damage level
 
-    // whether individual is now living in P or not
-    // this is merely for error checking
+    // whether individual is now living in P or not; used to indicate the "true
+    // situation", which need not be known by the individual
     bool envt_is_P;
+
+    // indicator if the individual is alive
+    bool alive;
 };
 
-// allocate a population and a population of survivors
-typedef Individual Population[Npop];
+// the population is stored in this variable
+std::vector<Individual> pop(Npop);
+// fecundity values are stored in this variable
+std::vector<double> fecundity(Npop);
 
-// specify populations living in predator (P)
-// or non-predator (NP) patches
-// also make two stacks for the new populations after 
-// environmental change
-Population P, NP, Pnew, NPnew;
 
 // initialize simulations from command line arguments
 void init_arguments(int argc, char *argv[])
 {
     mu_feedback  = atof(argv[1]);
-    mu_stress_influx  = atof(argv[2]);
-    mu_influx  = atof(argv[3]);
-    sdmu = atof(argv[4]);
-    s_P_2_NP[0]  = atof(argv[5]);
-    s_P_2_NP[1]  = atof(argv[6]);
-    s_NP_2_P[0]  = atof(argv[7]);
-    s_NP_2_P[1]  = atof(argv[8]);
-    s_12[0]  = atof(argv[9]);
-    s_12[1]  = atof(argv[10]);
-    init_feedback  = atof(argv[11]);
-    init_stress_influx  = atof(argv[12]);
-    init_influx  = atof(argv[13]);
-    cue_P  = atof(argv[14]);
-    cue_NP  = atof(argv[15]);
-    s0  = atof(argv[16]);
-    ad  = atof(argv[17]);
-    aP  = atof(argv[18]);
-    dmax  = atof(argv[19]);
-    zmax  = atof(argv[20]);
-    r = atof(argv[21]);
-    u = atof(argv[22]);
-    mort_background = atof(argv[23]);
+    mu_cue_influx  = atof(argv[2]);
+    mu_stress_influx  = atof(argv[3]);
+    mu_influx  = atof(argv[4]);
+    sdmu = atof(argv[5]);
+    s_P_2_NP  = atof(argv[6]);
+    s_NP_2_P  = atof(argv[7]);
+    init_lfeedback  = atof(argv[8]);
+    init_lcue_influx  = atof(argv[9]);
+    init_lstress_influx  = atof(argv[10]);
+    init_linflux  = atof(argv[11]);
+    cue_P  = atof(argv[12]);
+    cue_NP  = atof(argv[13]);
+    ad  = atof(argv[14]);
+    aP  = atof(argv[15]);
+    r = atof(argv[16]);
+    u = atof(argv[17]);
+    mort_background = atof(argv[18]);
+    p_att = atof(argv[19]);
+    maxtime = atoi(argv[20]);
+    ioind = atoi(argv[21]);
+    base_name = argv[22];
+
+    // set equilibrium probabilities
+    pr_envt_is_P = s_NP_2_P / (s_NP_2_P + s_P_2_NP);
 }
+
+
+// logistic function (to go from genotypic to phenotypic values)
+double logistic(double val)
+{
+    return 1.0/(1.0 + std::exp(-val));
+}
+
 
 // apply boundaries to a certain value
 void clamp(double &val, double const min, double const max)
@@ -187,72 +189,66 @@ void clamp(double &val, double const min, double const max)
     if (val > max)
     {
         val = max;
-    } 
+    }
     else if (val < min)
     {
         val = min;
     }
 }
 
+
 // mutation according to a continuum of alleles model
 void mutate(
-        double &G, 
-        double const mu, 
+        double &G,
+        double const mu,
         double const sdmu)
 {
 
     if (uniform(rng_r) < mu)
     {
-        normal_distribution<> allele_dist(0.0, sdmu);
+        std::normal_distribution<> allele_dist(0.0, sdmu);
         G += allele_dist(rng_r);
     }
 }
 
-// write the parameters 
-// (typically at the end of the output file)
-void write_parameters(ofstream &DataFile)
+
+// write the parameters
+void write_parameters(std::ofstream &DataFile)
 {
-	DataFile << endl
-		<< endl
-		<< "seed;" << seed << ";"<< endl
-		<< "Npop;" << Npop << ";"<< endl
-		<< "mu_feedback;" << mu_feedback << ";"<< endl
-		<< "mu_stress_influx;" << mu_stress_influx << ";"<< endl
-		<< "mu_influx;" << mu_influx << ";"<< endl
-		<< "sP2NP_1;" << s_P_2_NP[0] << ";"<< endl
-		<< "sP2NP_2;" << s_P_2_NP[1] << ";"<< endl
-		<< "sNP2P_1;" << s_NP_2_P[0] << ";"<< endl
-		<< "sNP2P_2;" << s_NP_2_P[1] << ";"<< endl
-		<< "gamma1;" << s_12[0] << ";"<< endl
-		<< "gamma2;" << s_12[1] << ";"<< endl
-		<< "init_feedback;" << init_feedback << ";"<< endl
-		<< "init_stress_influx;" << init_stress_influx << ";"<< endl
-		<< "init_influx;" << init_influx << ";"<< endl
-		<< "cue_P;" << cue_P << ";"<< endl
-		<< "cue_NP;" << cue_NP << ";"<< endl
-		<< "s0;" << s0 << ";"<< endl
-		<< "ad;" << ad << ";"<< endl
-		<< "aP;" << aP << ";"<< endl
-		<< "mort_background;" << mort_background << ";"<< endl
-		<< "dmax;" << dmax << ";"<< endl
-		<< "zmax;" << zmax << ";"<< endl
-		<< "r;" << r << ";"<< endl
-		<< "u;" << u << ";"<< endl;
+	DataFile << std::endl
+		<< "seed;" << seed << ";"<< std::endl
+		<< "Npop;" << Npop << ";"<< std::endl
+		<< "mu_feedback;" << mu_feedback << ";"<< std::endl
+        << "mu_cue_influx;" << mu_cue_influx << ";"<< std::endl
+		<< "mu_stress_influx;" << mu_stress_influx << ";"<< std::endl
+		<< "mu_influx;" << mu_influx << ";"<< std::endl
+		<< "sP2NP;" << s_P_2_NP << ";"<< std::endl
+		<< "sNP2P;" << s_NP_2_P << ";"<< std::endl
+		<< "init_lfeedback;" << init_lfeedback << ";"<< std::endl
+        << "init_lcue_influx;" << init_lcue_influx << ";"<< std::endl
+		<< "init_lstress_influx;" << init_lstress_influx << ";"<< std::endl
+		<< "init_linflux;" << init_linflux << ";"<< std::endl
+		<< "cue_P;" << cue_P << ";"<< std::endl
+		<< "cue_NP;" << cue_NP << ";"<< std::endl
+		<< "ad;" << ad << ";"<< std::endl
+		<< "aP;" << aP << ";"<< std::endl
+		<< "r;" << r << ";"<< std::endl
+        << "u;" << u << ";"<< std::endl
+        << "mort_background;" << mort_background << ";"<< std::endl
+		<< "p_att;" << p_att << ";"<< std::endl
+        << "maxtime;" << maxtime << ";"<< std::endl
+        << "base_name;" << base_name << ";"<< std::endl;
 }
 
-// initialize the simulation
-// by giving all the individuals 
-// genotypic values
-//
-// and doing some other stuff (e.g., random seed)
+
+// initialize the simulation by giving all the individuals genotypic values
 void init_population()
 {
-
     // set counters to 0
     numP = 0;
     numNP = 0;
 
-	// initialize the whole populatin
+	// initialize the whole population
 	for (int i = 0; i < Npop; ++i)
 	{
         Individual newInd;
@@ -260,218 +256,137 @@ void init_population()
         // set alleles
         for (int allele_i = 0; allele_i < 2; ++allele_i)
         {
-            newInd.feedback[allele_i] = init_feedback;
-            newInd.stress_influx[allele_i] = init_stress_influx;
-            newInd.influx[allele_i] = init_influx;
+            newInd.lfeedback[allele_i] = init_lfeedback;
+            newInd.lcue_influx[allele_i] = init_lcue_influx;
+            newInd.lstress_influx[allele_i] = init_lstress_influx;
+            newInd.linflux[allele_i] = init_linflux;
         }
 
-        // initialize current hormone level and damage as follows:
-        newInd.hormone = 0.0;
-        newInd.damage = 0.0;
+        // initialize hormone level and damage to baseline values:
+        // Note from Olle: tried to do this below
+        double feedback =
+            logistic(0.5*(newInd.lfeedback[0] + newInd.lfeedback[1]));
+        double influx =
+            logistic(0.5*(newInd.linflux[0] + newInd.linflux[1]));
+        newInd.hormone = (feedback > 0) ? influx/feedback : 1.0;
+        clamp(newInd.hormone, 0.0, 1.0);
+        newInd.damage = (r > 0) ? u * newInd.hormone/r : 1.0;
+        clamp(newInd.damage, 0.0, 1.0);
 
-        // put individuals in environment P or NP accordingt to their
-        // overall frequency in the first world. This does not really matter
-        // too much, as I expect frequencies of individuals in either
-        // environment to rapidly attain their ecological equilibria
-        newInd.envt_is_P = uniform(rng_r) < s_P_2_NP[0] / 
-            (s_NP_2_P[0] + s_P_2_NP[0]);
+        // use of equilibrium probabilities for initial environments
+        newInd.envt_is_P = uniform(rng_r) < pr_envt_is_P;
+
+        // make individuals alive and put in pop
+        newInd.alive = true;
+        pop[i] = newInd;
 
         if (newInd.envt_is_P)
         {
-            P[numP++] = newInd;
+            ++numP;
         }
         else
         {
-            NP[numNP++] = newInd;
+            ++numNP;
         }
 
         assert(numP + numNP <= Npop);
-    } 
-
-    current_world = false;
+    }
 } // end init_population
+
 
 // create an offspring
 void create_offspring(
-        Individual &mother, 
-        Individual &father, 
+        Individual &mother,
+        Individual &father,
         Individual &kid)
 {
-    // inherit the different gene loci
+    // assume allele 0 to be from maternal gamete and allele 1 from paternal
+    // gamete; the gametes are formed using free recombination of parental loci
+    double mat_lfeedback = mother.lfeedback[random_allele(rng_r)];
+    double pat_lfeedback = father.lfeedback[random_allele(rng_r)];
+    double mat_lcue_influx = mother.lcue_influx[random_allele(rng_r)];
+    double pat_lcue_influx = father.lcue_influx[random_allele(rng_r)];
+    double mat_lstress_influx = mother.lstress_influx[random_allele(rng_r)];
+    double pat_lstress_influx = father.lstress_influx[random_allele(rng_r)];
+    double mat_linflux = mother.linflux[random_allele(rng_r)];
+    double pat_linflux = father.linflux[random_allele(rng_r)];
+
+    kid.lfeedback[0] = mat_lfeedback;
+    kid.lfeedback[1] = pat_lfeedback;
+    kid.lcue_influx[0] = mat_lcue_influx;
+    kid.lcue_influx[1] = pat_lcue_influx;
+    kid.lstress_influx[0] = mat_lstress_influx;
+    kid.lstress_influx[1] = pat_lstress_influx;
+    kid.linflux[0] = mat_linflux;
+    kid.linflux[1] = pat_linflux;
+
+    // take into account mutation and note that allelic values are on logit
+    // scale (and need not be clamped)
     for (int allele_i = 0; allele_i < 2; ++allele_i)
     {
-        // inherit feedback alleles
-        kid.feedback[allele_i] = 
-            allele_i < 1 ? 
-            mother.feedback[random_allele(rng_r)] // mother inherits 
-            :
-            father.feedback[random_allele(rng_r)]; // father inherits
-
-        assert(kid.feedback[allele_i] >= 0.0);
-        assert(kid.feedback[allele_i] <= 1.0);
-
-        mutate(
-                kid.feedback[allele_i],
-                mu_feedback,
-                sdmu);
-
-        clamp(kid.feedback[allele_i], 0.0, 1.0);
-
-
-        // inherit the stress influx allele
-        kid.stress_influx[allele_i] = 
-            allele_i < 1 ? 
-            mother.stress_influx[random_allele(rng_r)] 
-            :
-            father.stress_influx[random_allele(rng_r)];
-
-        mutate(
-                kid.stress_influx[allele_i],
-                mu_stress_influx, 
-                sdmu
-                );
-
-        clamp(kid.stress_influx[allele_i], 0.0, 1.0);
-
-
-        // inherit the baseline influx allele
-        kid.influx[allele_i] = 
-            allele_i < 1 ? 
-            mother.influx[random_allele(rng_r)] 
-            :
-            father.influx[random_allele(rng_r)];
-
-        mutate(
-                kid.influx[allele_i],
-                mu_influx, 
-                sdmu);
-        
-        clamp(kid.influx[allele_i], 0.0, 1.0);
-    } // inheritance done
+        mutate(kid.lfeedback[allele_i], mu_feedback, sdmu);
+        mutate(kid.lcue_influx[allele_i], mu_cue_influx, sdmu);
+        mutate(kid.lstress_influx[allele_i], mu_stress_influx, sdmu);
+        mutate(kid.linflux[allele_i], mu_influx, sdmu);
+    }
 
     // set hormone level and damage to their baseline values
-    kid.hormone = 0.0;
-    kid.damage = 0.0;
-}
+    double feedback =
+        logistic(0.5*(kid.lfeedback[0] + kid.lfeedback[1]));
+    double influx =
+        logistic(0.5*(kid.linflux[0] + kid.linflux[1]));
+    kid.hormone = (feedback > 0) ? influx/feedback : 1.0;
+    clamp(kid.hormone, 0.0, 1.0);
+    kid.damage = (r > 0) ? u * kid.hormone/r : 1.0;
+    clamp(kid.damage, 0.0, 1.0);
 
-// calculate fecundity and how it will be affected
-// by damage. If no damage, fecundity is 1
-double fecundity_damage(double const damage)
-{
-    double val = 1.0 - pow(damage/dmax,ad);
+    // let kid start its life in "random" environment
+    kid.envt_is_P = uniform(rng_r) < pr_envt_is_P;
 
-    if (val <= 0.0)
-    {
-        val = 0.0;
+    // set kid alive
+    kid.alive = true;
+
+    // update numP and numNP
+    if (kid.envt_is_P) {
+        ++numP;
+    } else {
+        ++numNP;
     }
-
-    return(val);
 }
 
-// calculate the mortality probability
-// which is baseline + predator-induced in environment P
-// and baseline only in environment NP
-//
-// Parameters
-// ----------
-//      double const hormone_level:
-//          the current hormone level of the prey
-//
-//      
-double pkill(double const hormone_level, bool envt_is_P)
-{
-    double kill_prob = mort_background;
-   
-    // in predator environment, mortality is relative to hormone level
-    if (envt_is_P)
-    {
-        kill_prob += (1.0 - mort_background) * (1.0 - pow(hormone_level/zmax, aP));
-    }
 
-    // add baseline survival.. if no one survivas (say, baseline
-    // hormone levels are low at the start), drift will be enormous
-    // so let's bound the survival probability
-    double survival = s0 + (1.0 - s0) * (1.0 - kill_prob);
-
-    kill_prob = 1.0 - survival;
-
-    assert(kill_prob >= 0);
-    assert(kill_prob <= 1.0);
-
-    return(kill_prob);
-}
-
-// move between environments
+// switch between environments
 void environmental_switching()
 {
-    // counters for individuals that move to a different
-    // patch due to environmental change, with switch rates
-    // s_P_2_NP and s_NP_2_P
-    int numNPnew = 0;
-
-    for (int ind_i = 0; ind_i < numP; ++ind_i)
+    for (int ind_i = 0; ind_i < Npop; ++ind_i)
     {
-        if (uniform(rng_r)  < s_P_2_NP[current_world])
-        {
-            // copy individual to NPnew stack which is a 
-            // placeholder for all individuals who go to NP
-            //
-            // we cannot directly transfer individuals to the NP
-            // stack itself, as the NP stack still needs to undergo
-            // survival selection.
-            NPnew[numNPnew++] = P[ind_i];
-            P[ind_i] = P[--numP];
-            --ind_i;
-            assert(numP >= 0);
-            assert(numP <= Npop);
-            assert(numNPnew >= 0);
-            assert(numNP <= Npop);
+        if (pop[ind_i].alive) { // all individuals ought to be alive here
+            if (pop[ind_i].envt_is_P) {
+                if (uniform(rng_r) < s_P_2_NP) { // switch
+                    pop[ind_i].envt_is_P = false;
+                    --numP;
+                    ++numNP;
+                } // else no change
+            } else {
+                if (uniform(rng_r) < s_NP_2_P) { // switch
+                    pop[ind_i].envt_is_P = true;
+                    ++numP;
+                    --numNP;
+                } // else no change
+            }
         }
-    }
-
-    for (int ind_i = 0; ind_i < numNP; ++ind_i)
-    {
-        if (uniform(rng_r)  < s_NP_2_P[current_world])
-        {
-            // copy individual to NPnew stack which is a 
-            // placeholder for all individuals who go to NP
-            //
-            // we cannot directly transfer individuals to the NP
-            // stack itself, as the NP stack still needs to undergo
-            // survival selection.
-            P[numP++] = NP[ind_i];
-            NP[ind_i] = NP[--numNP];
-            --ind_i;
-            assert(numP >= 0);
-            assert(numP <= Npop);
-            assert(numNP >= 0);
-            assert(numNP <= Npop);
-        }
-    }
-
-    // now copy NPnew to NP
-    for (int ind_i = 0; ind_i < numNPnew; ++ind_i)
-    {
-        NP[numNP++] = NPnew[ind_i];
-
-        assert(numNP + numP >= 0);
-        assert(numNP + numP <= Npop);
     }
 } //end void environmental_switching()
 
 
 // survival of individuals
-void survive(ofstream &datafile)
+void survive(std::ofstream &datafile)
 {
-    sum_fecundity = 0.0;
-
-    // reset fecundity averages
-    // that are tracked for stats
+    // reset fecundity averages that are tracked for stats
     fecundity_stats[0] = 0.0;
     fecundity_stats[1] = 0.0;
 
-    // reset numbers of dead individuals
-    // that are tracked for stats
+    // reset numbers of dead individuals that are tracked for stats
     Nmort_stats[0] = 0;
     Nmort_stats[1] = 0;
 
@@ -479,309 +394,125 @@ void survive(ofstream &datafile)
     assert(numNP >= 0);
     assert(numP + numNP <= Npop);
 
-    // survival in the P population
-    for (int ind_i = 0; ind_i < numP; ++ind_i)
+    for (int ind_i = 0; ind_i < Npop; ++ind_i)
     {
-        // standard influx and outflux in hormone level
-        // z(t+1) = influx + (1 - feedback) * z(t)
-        P[ind_i].hormone = 
-            0.5 * (P[ind_i].influx[0] + P[ind_i].influx[1])
-             + (1.0 - 0.5 * (P[ind_i].feedback[0] + P[ind_i].feedback[1]))
-             * P[ind_i].hormone;
-
-        assert(P[ind_i].influx[0] >= 0.0);        
-        assert(P[ind_i].influx[1] >= 0.0);        
-        
-        assert(P[ind_i].stress_influx[0] >= 0.0);        
-        assert(P[ind_i].stress_influx[1] >= 0.0);        
-
-        // individual gets predator cue 
-        if (uniform(rng_r) < cue_P)
-        {
-            // gets cue, spike the hormone level
-            P[ind_i].hormone += 
-                0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
-            
-        }
-
-        clamp(P[ind_i].hormone, 0.0, zmax);
-        
-        // OK, did not survive dependent on the level of stress & damage
-        if (uniform(rng_r) < pkill(P[ind_i].hormone, true))
-        {
-            ++Nmort_stats[0];
-            // delete individual from stack
-            P[ind_i] = P[--numP];
-            --ind_i;
-
-            assert(numP >= 0);
-            assert(numP <= Npop);
-            assert(numNP >= 0);
-            assert(numNP <= Npop);
-        }
-        else // Individual survived. 
-        {
-            // gets attacked, spike the hormone level
-            // so if
-            P[ind_i].hormone += 
-                0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
-
-            clamp(P[ind_i].hormone, 0.0, zmax);
-
-            // update damage levels
-            P[ind_i].damage = (1.0 - r) * P[ind_i].damage + u * P[ind_i].hormone;
-
-            // set boundaries to damage level
-            assert(P[ind_i].damage >= 0);
-
-            clamp(P[ind_i].damage,0.0,dmax);
-
-            // add to cumulative distribution of damage
-            fecundity_cumul[ind_i] = sum_fecundity + fecundity_damage(P[ind_i].damage);
-            sum_fecundity = fecundity_cumul[ind_i];
-        }
-    } // end for (int ind_i = 0; ind_i < numP; ++ind_i)
-
-    fecundity_stats[0] = sum_fecundity;
-
-    // survival in the NP population
-    for (int ind_i = 0; ind_i < numNP; ++ind_i)
-    {
-        // standard influx and outflux in hormone level
-        // z(t+1) = influx + (1 - feedback) * z(t)
-        NP[ind_i].hormone = 
-            0.5 * (NP[ind_i].influx[0] + NP[ind_i].influx[1])
-             + (1.0 - 0.5 * (NP[ind_i].feedback[0] + NP[ind_i].feedback[1]))
-             * NP[ind_i].hormone;
-
-        assert(NP[ind_i].influx[0] >= 0.0);        
-        assert(NP[ind_i].influx[1] >= 0.0);        
-        
-        assert(NP[ind_i].stress_influx[0] >= 0.0);        
-        assert(NP[ind_i].stress_influx[1] >= 0.0);        
-
-        // individual gets predator cue 
-        if (uniform(rng_r) < cue_NP)
-        {
-            // gets cue, spike the hormone level
-            NP[ind_i].hormone += 
-                0.5 * (NP[ind_i].stress_influx[0] + NP[ind_i].stress_influx[1]);
-        }
-
-        clamp(P[ind_i].hormone, 0.0, zmax);
-
-        // individual did not survive 
-        if (uniform(rng_r) < pkill(NP[ind_i].hormone, false))
-        {
-            ++Nmort_stats[1];
-            // delete individual from stack
-            NP[ind_i] = NP[--numNP];
-            --ind_i;
-
-            assert(numNP >= 0);
-            assert(numNP <= Npop);
-        }
-        else // Individual survived. Check for potential for envt'al change
-        {
-            // no stress homrone increase here, 
-            // as no predator has been encountered
-
-            // update damage levels
-            NP[ind_i].damage = (1.0 - r) * NP[ind_i].damage + u * NP[ind_i].hormone;
-
-            // set boundaries to damage level
-            assert(NP[ind_i].damage >= 0);
-
-            clamp(NP[ind_i].damage, 0.0, dmax);
-
-            if (numP > 0)
-            {
-                assert(fecundity_cumul[numP + ind_i - 1] == sum_fecundity);
+        if (pop[ind_i].alive) { // all individuals ought to be alive here
+            // update hormone level from "background" influx and outflux
+            double feedback =
+                logistic(0.5*(pop[ind_i].lfeedback[0] +
+                              pop[ind_i].lfeedback[1]));
+            double cue_influx =
+                logistic(0.5*(pop[ind_i].lcue_influx[0] +
+                              pop[ind_i].lcue_influx[1]));
+            double stress_influx =
+                logistic(0.5*(pop[ind_i].lstress_influx[0] +
+                              pop[ind_i].lstress_influx[1]));
+            double influx =
+                logistic(0.5*(pop[ind_i].linflux[0] +
+                              pop[ind_i].linflux[1]));
+            pop[ind_i].hormone = (1.0 - feedback)*pop[ind_i].hormone + influx;
+            double p_cue = pop[ind_i].envt_is_P ? cue_P : cue_NP;
+    
+            if (uniform(rng_r) < p_cue) {
+                // individual gets predator cue
+                pop[ind_i].hormone += cue_influx;
             }
 
-            // add to cumulative distribution of damage
-            fecundity_cumul[numP + ind_i] = sum_fecundity + fecundity_damage(NP[ind_i].damage);
-            sum_fecundity = fecundity_cumul[numP + ind_i];
+            clamp(pop[ind_i].hormone, 0.0, 1.0);
+            // take into account possible predator attack
+            if (pop[ind_i].envt_is_P) { // attack only possible if P
+                if (uniform(rng_r) < p_att) { // predator attacks
+                    double kill_prob = 1.0 - pow(pop[ind_i].hormone, aP);
+                    if (uniform(rng_r) < kill_prob) {
+                        // individual is killed by predator
+                        pop[ind_i].alive = false;
+                        --num_alive;
+                        --numP;
+                        ++Nmort_stats[1];
+                        if (num_alive == 0)
+                        {
+                            std::cout << "extinct" << std::endl;
+                            write_parameters(datafile);
+                            exit(1);
+                        }
+                    } else {
+                        // individual survives and gets hormone spike
+                        pop[ind_i].hormone += stress_influx;
+                        clamp(pop[ind_i].hormone, 0.0, 1.0);
+                    }
+                }
+            }
         }
-    } // end for for (int ind_i = 0; ind_i < numNP; ++ind_i)
-
-    // update fecundity stats
-    fecundity_stats[1] = sum_fecundity - fecundity_stats[0];
-
-    // take averages of fecundity stats
-    fecundity_stats[0] /= numP;
-    fecundity_stats[1] /= numNP;
-
-    assert(numP >= 0);
-    assert(numNP >= 0);
-    assert(numP + numNP <= Npop);
-
-    if (numP + numNP == 0)
-    {
-        cout << "extinct" << endl;
-        write_parameters(datafile);
-        exit(1);
+        if (pop[ind_i].alive) {
+            // now take into account background mortality
+            if (uniform(rng_r) < mort_background) {
+                pop[ind_i].alive = false;
+                --num_alive;
+                if (pop[ind_i].envt_is_P) {
+                    --numP;
+                    ++Nmort_stats[1];
+                } else {
+                    --numNP;
+                    ++Nmort_stats[0];
+                }
+                // dead individual, no fecundity
+                fecundity[ind_i] = 0.0;
+                if (num_alive == 0)
+                {
+                    std::cout << "extinct" << std::endl;
+                    write_parameters(datafile);
+                    exit(1);
+                }
+            } else {
+                // update damage levels
+                pop[ind_i].damage = (1.0 - r) * pop[ind_i].damage +
+                    u * pop[ind_i].hormone;
+                clamp(pop[ind_i].damage,0.0, 1.0);
+                // damage-dependent fecundity
+                fecundity[ind_i] = 1.0 - pow(pop[ind_i].damage,ad);
+                fecundity_stats[pop[ind_i].envt_is_P] += fecundity[ind_i];
+            }
+        } else { // dead individual, no fecundity
+            fecundity[ind_i] = 0.0;
+        }
     }
-
-    // see if we need to switch worlds
-    if (uniform(rng_r) < s_12[current_world])
-    {
-        current_world = !current_world;
-    }
+    // make fecundity stats be per capita
+    fecundity_stats[0] /= numNP;
+    fecundity_stats[1] /= numP;
 }
 
 
-// failsafe function to do reproduction
-void reproduce_check(ofstream &datafile)
+// fail-safe function to do reproduction
+void reproduce_check(std::ofstream &datafile)
 {
-    assert(numP >= 0);
-    assert(numNP >= 0);
-    assert(numP + numNP > 0);
-    assert(numP + numNP <= Npop);
-
-    // number of offspring to be made
-    // equal to individuals who have died
-    int Noffspring = Npop - numP - numNP;
-
-    assert(Noffspring >= 0);
-    assert(Noffspring <= Npop);
-
-    if (Noffspring == 0)
+    // run through population and replace all dead individuals with offspring;
+    // the parents for each offspring are randomly selected from the entire
+    // population (this is a bit unrealistic); to select random parents, we use
+    // a std::discrete_distribution<int> with fecundity vector as weights
+    // (note: fecundity is zero for dead individuals)
+    std::discrete_distribution<int> par_distr(fecundity.begin(),
+                                              fecundity.end());
+    for (int ind_i = 0; ind_i < Npop; ++ind_i)
     {
-        return;
+        if (!pop[ind_i].alive) { // replace this dead individual
+            int father = par_distr(rng_r);
+            int mother = par_distr(rng_r);
+            // create the offspring in the right position of pop
+            create_offspring(pop[mother], pop[father], pop[ind_i]);
+        }
     }
-
-    // stack of offspring that is going to be created
-    Individual kids[Noffspring];
-
-    double cumul_deviate = 0;
-
-    int father, mother;
-
-    if (numP + numNP < 1)
-    {
-        write_parameters(datafile);
-        exit(1);
-    }   
-
-    uniform_int_distribution<int> random_parent(0, numP + numNP - 1);
-
-    for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
-    {
-        father = random_parent(rng_r);
-        mother = random_parent(rng_r);
-
-        assert(father < Npop);
-        assert(father >= 0);
-        assert(mother < Npop);
-        assert(mother >= 0);
-
-        // obtain father from cumulative fecundity 
-        // distribution
-        cumul_deviate = uniform(rng_r) * sum_fecundity;
-
-        for (int ind_i = 0; ind_i < numP + numNP; ++ind_i)
-        {
-            assert(ind_i >= 0);
-            assert(ind_i < numP + numNP);
-            assert(ind_i < Npop);
-
-            if (cumul_deviate < fecundity_cumul[ind_i])
-            {
-                father = ind_i;
-                break;
-            }
-        }
-        
-        // obtain mother from cumulative fecundity 
-        // distribution
-        cumul_deviate = uniform(rng_r) * sum_fecundity;
-
-        assert(cumul_deviate >= 0);
-        assert(cumul_deviate <= sum_fecundity);
-
-        for (int ind_i = 0; ind_i < numP + numNP; ++ind_i)
-        {
-            assert(ind_i >= 0);
-            assert(ind_i < numP + numNP);
-            assert(ind_i < Npop);
-
-            if (cumul_deviate < fecundity_cumul[ind_i])
-            {
-                mother = ind_i;
-                break;
-            }
-        }
-
-        assert(father >= 0);
-        assert(father < numP + numNP);
-        
-        assert(mother >= 0);
-        assert(mother < numP + numNP);
-        
-        Individual father_ind;
-
-        if (father < numP)
-        {
-            father_ind = P[father];
-        }
-        else
-        {
-            assert(father - numP >= 0);
-            assert(father - numP < numNP);
-            father_ind = NP[father - numP];
-        }
-        
-        
-        Individual mother_ind;
-
-        if (mother < numP)
-        {
-            mother_ind = P[mother];
-        }
-        else
-        {
-            assert(mother - numP >= 0);
-            assert(mother - numP < numNP);
-            mother_ind = NP[mother - numP];
-        }
-        
-        // create the offspring
-        create_offspring(mother_ind, father_ind, kids[kid_i]);
-    } // end for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
-    
-    // now distribute kids over the environments
-    
-    // calculate target population size of numP 
-    // (and numNP = Npop - numP)
-    // after offspring have replaced dead adults
-    int numPtarget = (double) Npop * s_NP_2_P[current_world] / 
-        (s_P_2_NP[current_world] + s_NP_2_P[current_world]);
-
-    // now start redistributing kids
-    for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
-    {
-        // replenish numP and NP populations dependent on their 
-        // ratio in the overall population
-        if (numP < numPtarget)
-        {
-            P[numP++] = kids[kid_i];
-        }
-        else
-        {
-            NP[numNP++] = kids[kid_i];
-        }
-    } // end for (int kid_i = 0; kid_i < Noffspring; ++kid_i)
-
+    num_alive = Npop; // all should now be alive
     assert(numP + numNP == Npop);
 }
 
 
-// write down summary statistics
-void write_data(ofstream &DataFile)
+// write summary statistics
+void write_data(std::ofstream &DataFile)
 {
     double mean_feedback = 0;
     double ss_feedback = 0;
+    double mean_cue_influx = 0;
+    double ss_cue_influx = 0;
     double mean_stress_influx = 0;
     double ss_stress_influx = 0;
     double mean_influx = 0;
@@ -793,224 +524,333 @@ void write_data(ofstream &DataFile)
 
     double freq_P = (double) numP / (numP + numNP);
 
-    // get stats from the population
-    for (int ind_i =  0; ind_i < numP; ++ind_i)
+    for (int ind_i = 0; ind_i < Npop; ++ind_i)
     {
-        // feedback
-        double feedback = 0.5 * (P[ind_i].feedback[0] + P[ind_i].feedback[1]);
-        mean_feedback += feedback;
-        ss_feedback += feedback * feedback;
-        
-        // stress_influx
-        double stress_influx = 
-            0.5 * (P[ind_i].stress_influx[0] + P[ind_i].stress_influx[1]);
-
-        mean_stress_influx += stress_influx;
-        ss_stress_influx += stress_influx * stress_influx;
-
-        // influx
-        double influx = 0.5 * (P[ind_i].influx[0] + P[ind_i].influx[1]);
-        mean_influx += influx;
-        ss_influx += influx * influx;
-        
-        double hormone = P[ind_i].hormone;
-        mean_hormone += hormone;
-        ss_hormone += hormone * hormone;
-        
-        double damage = P[ind_i].damage;
-        mean_damage += damage;
-        ss_damage += damage * damage;
+        if (pop[ind_i].alive) { // all should be alive at this point
+            // Note from Olle: phenotypes are assumed to be mean of allelic
+            // values (often sum of allelic values are assumed)
+            // feedback
+            double feedback =
+                logistic(0.5*(pop[ind_i].lfeedback[0] +
+                              pop[ind_i].lfeedback[1]));
+            mean_feedback += feedback;
+            ss_feedback += feedback * feedback;
+            // cue_influx
+            double cue_influx =
+                logistic(0.5*(pop[ind_i].lcue_influx[0] +
+                              pop[ind_i].lcue_influx[1]));
+            mean_cue_influx += cue_influx;
+            ss_cue_influx += cue_influx * cue_influx;
+            // stress_influx
+            double stress_influx =
+                logistic(0.5*(pop[ind_i].lstress_influx[0] +
+                              pop[ind_i].lstress_influx[1]));
+            mean_stress_influx += stress_influx;
+            ss_stress_influx += stress_influx * stress_influx;
+            // influx
+            double influx =
+                logistic(0.5*(pop[ind_i].linflux[0] +
+                              pop[ind_i].linflux[1]));
+            mean_influx += influx;
+            ss_influx += influx * influx;
+            // hormone
+            double hormone = pop[ind_i].hormone;
+            mean_hormone += hormone;
+            ss_hormone += hormone * hormone;
+            // damage
+            double damage = pop[ind_i].damage;
+            mean_damage += damage;
+            ss_damage += damage * damage;
+        }
     }
-    
-    // get stats from the population
-    for (int ind_i =  0; ind_i < numNP; ++ind_i)
-    {
-        // feedback
-        double feedback = 0.5 * (NP[ind_i].feedback[0] + NP[ind_i].feedback[1]);
-        mean_feedback += feedback;
-        ss_feedback += feedback * feedback;
-        
-        // stress_influx
-        double stress_influx = 
-            0.5 * (NP[ind_i].stress_influx[0] + NP[ind_i].stress_influx[1]);
+    mean_feedback /= Npop;
+    mean_cue_influx /= Npop;
+    mean_stress_influx /= Npop;
+    mean_influx /= Npop;
+    mean_hormone /= Npop;
+    mean_damage /= Npop;
 
-        mean_stress_influx += stress_influx;
-        ss_stress_influx += stress_influx * stress_influx;
+    double sd_feedback = sqrt(ss_feedback / Npop - pow(mean_feedback,2.0));
+    double sd_cue_influx = sqrt(ss_cue_influx / Npop -
+                                pow(mean_cue_influx,2.0));
+    double sd_stress_influx = sqrt(ss_stress_influx / Npop -
+                                   pow(mean_stress_influx,2.0));
+    double sd_influx = sqrt(ss_influx / Npop - pow(mean_influx,2.0));
+    double sd_hormone = sqrt(ss_hormone / Npop - pow(mean_hormone,2.0));
+    double sd_damage = sqrt(ss_damage / Npop - pow(mean_damage,2.0));
 
-        // influx
-        double influx = 0.5 * (NP[ind_i].influx[0] + NP[ind_i].influx[1]);
-        mean_influx += influx;
-        ss_influx += influx * influx;
-        
-        double hormone = NP[ind_i].hormone;
-        mean_hormone += hormone;
-        ss_hormone += hormone * hormone;
-        
-        double damage = NP[ind_i].damage;
-        mean_damage += damage;
-        ss_damage += damage * damage;
-    }
-
-    mean_feedback /= numP + numNP;
-    mean_stress_influx /= numP + numNP;
-    mean_influx /= numP + numNP;
-    mean_hormone /= numP + numNP;
-    mean_damage /= numP + numNP;
-
-    double var_feedback = ss_feedback / (numP + numNP) - pow(mean_feedback,2.0);
-    double var_stress_influx = ss_stress_influx / (numP + numNP) - pow(mean_stress_influx,2.0);
-    double var_influx = ss_influx / (numP + numNP) - pow(mean_influx,2.0);
-    double var_hormone = ss_hormone / (numP + numNP) - pow(mean_hormone,2.0);
-    double var_damage = ss_damage / (numP + numNP) - pow(mean_damage,2.0);
-
-    DataFile << generation << ";" 
+    DataFile << generation << ";"
         << freq_P << ";"
         << mean_feedback << ";"
+        << mean_cue_influx << ";"
         << mean_stress_influx << ";"
         << mean_influx << ";"
         << mean_hormone << ";"
         << mean_damage << ";"
-        << var_feedback << ";"
-        << var_stress_influx << ";"
-        << var_influx << ";"
-        << var_hormone << ";"
-        << var_damage << ";" 
-        << (double)Nmort_stats[0]/((double)Npop * s_NP_2_P[current_world] / (s_NP_2_P[current_world] + s_NP_2_P[current_world])) << ";" 
-        << (double)Nmort_stats[1]/((double)Npop * s_P_2_NP[current_world] / (s_NP_2_P[current_world] + s_NP_2_P[current_world])) << ";" 
-        << (double)fecundity_stats[0] << ";" 
-        << (double)fecundity_stats[1] << ";" 
-        << endl;
+        << sd_feedback << ";"
+        << sd_cue_influx << ";"
+        << sd_stress_influx << ";"
+        << sd_influx << ";"
+        << sd_hormone << ";"
+        << sd_damage << ";"
+        << (double)Nmort_stats[1]/numP << ";"
+        << (double)Nmort_stats[0]/numNP << ";"
+        << (double)fecundity_stats[1] << ";"
+        << (double)fecundity_stats[0] << ";"
+        << std::endl;
 }
 
 // write the headers of a datafile
-void write_data_headers(ofstream &DataFile)
+void write_data_headers(std::ofstream &DataFile)
 {
-    DataFile << "generation;" 
+    DataFile << "generation;"
         << "freq_P" << ";"
         << "mean_feedback" << ";"
+        << "mean_cue_influx" << ";"
         << "mean_stress_influx" << ";"
         << "mean_influx" << ";"
         << "mean_hormone" << ";"
         << "mean_damage" << ";"
-        << "var_feedback" << ";"
-        << "var_stress_influx" << ";"
-        << "var_influx" << ";"
-        << "var_hormone" << ";"
-        << "var_damage" << ";" 
+        << "sd_feedback" << ";"
+        << "sd_cue_influx" << ";"
+        << "sd_stress_influx" << ";"
+        << "sd_influx" << ";"
+        << "sd_hormone" << ";"
+        << "sd_damage" << ";"
         << "prop_dead_P" << ";"
         << "prop_dead_NP" << ";"
         << "mean_fecundity_P" << ";"
         << "mean_fecundity_NP" << ";"
-        << endl;
+        << std::endl;
 }
 
-// iterate individuals for tmax timesteps 
-// to plot the stress response curve for
+// iterate individuals for tmax timesteps to plot the stress response curve for
 // different individuals
-void write_simple_iter(ofstream &IterFile)
+void write_simple_iter(std::ofstream &IterFile)
 {
     // number of individuals
-    int nrep = 100;
+    int nrep = 50;
     int tmax = 500;
     int tstress = 100;
 
-    double stress, stress_tplus1;
+    // use an individual's genotype to compute its hormone response to, first,
+    // a single predator cue at time step tstress, and second, a predator
+    // attack at time step tstress; assume the hormone is at the background
+    // equilibrium level at the start
 
     Individual ind;
 
-    // calculate freq of individuals in 
-    // predator vs nonpredator patch
-    double freq_p = (double) numP / (numP + numNP);
+    IterFile << "time;individual;hormone;" << std::endl;
 
-    IterFile << "time;individual;stress;" << endl;
-
-    uniform_int_distribution<int> random_from_P(0, numP - 1);
-    uniform_int_distribution<int> random_from_NP(0, numNP - 1);
+    std::uniform_int_distribution<int> rint(0, Npop - 1);
 
     // sample individuals
     for (int ind_i = 0; ind_i < nrep; ++ind_i)
     {
-        if (uniform(rng_r) < freq_p)
-        {
-            ind = P[random_from_P(rng_r)];
-        }
-        else
-        {
-            ind = NP[random_from_NP(rng_r)];
-        }
+        ind = pop[rint(rng_r)];
+        // get feedback, cue_influx, stress_influx and influx from genotype
+        double feedback =
+            logistic(0.5*(ind.lfeedback[0] +
+                          ind.lfeedback[1]));
+        double cue_influx =
+            logistic(0.5*(ind.lcue_influx[0] +
+                          ind.lcue_influx[1]));
+        double stress_influx =
+            logistic(0.5*(ind.lstress_influx[0] +
+                          ind.lstress_influx[1]));
+        double influx =
+            logistic(0.5*(ind.linflux[0] +
+                          ind.linflux[1]));
 
-        assert(ind.feedback[0] >= 0.0);
-        assert(ind.feedback[1] <= 1.0);
+        // hormone background level
+        double hormone0 = (feedback > 0) ? influx/feedback : 1.0;
+        clamp(hormone0, 0.0, 1.0);
+        double hormone_cue = hormone0;
+        double hormone_att = hormone0;
 
-        stress = 0.0;
-        stress_tplus1 = 0.0;
-            
-        IterFile << 0 << ";" << ind_i << ";" << stress << ";" << endl;
+        IterFile << "cue" << ";" << 0 << ";" << ind_i << ";"
+                 << hormone_cue << ";" << std::endl;
+        IterFile << "att" << ";" << 0 << ";" << ind_i << ";"
+                 << hormone_att << ";" << std::endl;
 
-        // iterate the stress response for this individual
+        // iterate the stress responses for this individual
         for (int timestep = 0; timestep < tmax; ++timestep)
         {
-            stress_tplus1 = 0.5 * (ind.influx[0] + ind.influx[1]) 
-                                + (1.0 - 0.5 * (ind.feedback[0] + ind.feedback[1]))
-                                * stress;
-            
-            if (timestep - 1 == tstress)
+            hormone_cue = (1.0 - feedback)*hormone_cue + influx;
+            hormone_att = (1.0 - feedback)*hormone_att + influx;
+
+            if (timestep == tstress)
             {
-                stress_tplus1 += 0.5 * (ind.stress_influx[0] + ind.stress_influx[1]);
+                hormone_cue += cue_influx;
+                hormone_att += stress_influx;
             }
 
-            // update stress level
-            clamp(stress_tplus1, 0.0, zmax);
+            clamp(hormone_cue, 0.0, 1.0);
+            clamp(hormone_att, 0.0, 1.0);
 
-            stress = stress_tplus1;
-
-            IterFile << timestep << ";" << ind_i << ";" << stress << ";" << endl;
+            IterFile << "cue" << ";" << timestep << ";" << (ind_i + 1) << ";"
+                     << hormone_cue << ";" << std::endl;
+            IterFile << "att" << ";" << timestep << ";" << (ind_i + 1) << ";"
+                     << hormone_att << ";" << std::endl;
         }
     }
 }
 
 
-// the guts of the code
+// read population from tab-separated text file
+void read_pop_from_file(std::string infilename)
+{
+    std::ifstream infile(infilename.c_str());
+    if (!infile) {
+        std::cerr << "Could not open file " << infilename << '\n';
+    } else {
+        // skip first line in file (contains headers)
+        char c = '\0';
+        while (c != '\n' && infile) infile.get(c);
+        // count individuals
+        int ind_i = 0;
+        Individual indi;
+        double feedback; // dummy variable
+        double cue_influx; // dummy variable
+        double stress_influx; // dummy variable
+        double influx; // dummy variable
+        int envtP = 0;
+        int alv = 0;
+        while (infile && ind_i < Npop) {
+            infile >> indi.lfeedback[0];
+            infile >> indi.lfeedback[1];
+            infile >> indi.lcue_influx[0];
+            infile >> indi.lcue_influx[1];
+            infile >> indi.lstress_influx[0];
+            infile >> indi.lstress_influx[1];
+            infile >> indi.linflux[0];
+            infile >> indi.linflux[1];
+            infile >> feedback;
+            infile >> cue_influx;
+            infile >> stress_influx;
+            infile >> influx;
+            infile >> indi.hormone;
+            infile >> indi.damage;
+            infile >> envtP;
+            indi.envt_is_P = envtP > 0;
+            infile >> alv;
+            indi.alive = alv > 0;
+            pop[ind_i] = indi;
+            ++ind_i;
+        }
+        if (ind_i < Npop) {
+            std::cerr << "Failed to read pop from " << infilename << "!\n";
+        } else { // compute numP and numNP
+            numP = 0;
+            numNP = 0;
+            for (int i = 0; i < Npop; ++i) {
+                if (pop[i].envt_is_P) {
+                    ++numP;
+                } else {
+                    ++numNP;
+                }
+            }
+        }
+        infile.close();
+    }
+}
+
+// write population to tab-separated text file
+void write_pop_to_file(std::ofstream &PopFile)
+{
+    // first write headers
+    PopFile << "lfeedback1" << "\t" << "lfeedback2" << "\t"
+        << "lcue_influx1" << "\t" << "lcue_influx2" << "\t"
+        << "lstress_influx1" << "\t" << "lstress_influx2" << "\t"
+        << "linflux1" << "\t" << "linflux2" << "\t"
+        << "feedback" << "\t"
+        << "cue_influx" << "\t"
+        << "stress_influx" << "\t"
+        << "influx" << "\t"
+        << "hormone" << "\t"
+        << "damage" << "\t"
+        << "envt_is_P" << "\t"
+        << "alive" << "\n";
+    // then write population
+    for (int ind_i = 0; ind_i < Npop; ++ind_i)
+    {
+        double feedback =
+            logistic(0.5*(pop[ind_i].lfeedback[0] +
+                          pop[ind_i].lfeedback[1]));
+        double cue_influx =
+            logistic(0.5*(pop[ind_i].lcue_influx[0] +
+                          pop[ind_i].lcue_influx[1]));
+        double stress_influx =
+            logistic(0.5*(pop[ind_i].lstress_influx[0] +
+                          pop[ind_i].lstress_influx[1]));
+        double influx =
+            logistic(0.5*(pop[ind_i].linflux[0] +
+                          pop[ind_i].linflux[1]));
+        PopFile << pop[ind_i].lfeedback[0] << "\t"
+                << pop[ind_i].lfeedback[1] << "\t"
+                << pop[ind_i].lcue_influx[0] << "\t"
+                << pop[ind_i].lcue_influx[1] << "\t"
+                << pop[ind_i].lstress_influx[0] << "\t"
+                << pop[ind_i].lstress_influx[1] << "\t"
+                << pop[ind_i].linflux[0] << "\t"
+                << pop[ind_i].linflux[1] << "\t"
+                << feedback << "\t"
+                << cue_influx << "\t"
+                << stress_influx << "\t"
+                << influx << "\t"
+                << pop[ind_i].hormone << "\t"
+                << pop[ind_i].damage << "\t"
+                << pop[ind_i].envt_is_P << "\t"
+                << pop[ind_i].alive << "\n";
+    }
+}
+
+
 int main(int argc, char ** argv)
 {
 	init_arguments(argc, argv);
-	init_population();
 
-    // generate a unique filename for the output file
-    string filename("sim_stress");
-    create_filename(filename);
-    ofstream DataFile(filename.c_str());  
+    if (ioind > 1) {
+        // read pop from file
+        read_pop_from_file(base_name + "pop.txt");
+    } else {
+        // initialize from input parameters
+        init_population();
+    }
 
-    string filename_iters(filename + "iters");
-    ofstream IterFile(filename_iters.c_str());  
+    std::ofstream DataFile(base_name.c_str());
+    std::ofstream IterFile((base_name + "iters.csv").c_str());
 
-    
     // write some params
 	write_parameters(DataFile);
 
     // write headers to the datafile
 	write_data_headers(DataFile);
 
-    // the main part of the code
-	for (generation = 0; generation <= NumGen; ++generation)
+    // generation is really time step, with overlapping generations
+	for (generation = 0; generation <= maxtime; ++generation)
 	{
         environmental_switching();
 
 		survive(DataFile);
 
 		reproduce_check(DataFile);
-        
+
         do_stats = generation % skip == 0;
 
-        // print statistics every nth generation
+        // print statistics every skip generation
         if (do_stats)
 		{
 			write_data(DataFile);
 		}
 	}
 
+    if (ioind > 0) {
+        // write pop to file
+        std::ofstream PopFile((base_name + "pop.txt").c_str());
+        write_pop_to_file(PopFile);
+    }
+
     // iterate the stress response curves for a subset of individuals
     write_simple_iter(IterFile);
-//    // finally write some params
-//	write_parameters(DataFile);
 }
