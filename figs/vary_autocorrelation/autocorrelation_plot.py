@@ -59,8 +59,9 @@ assert(the_data.shape[0] > 0)
 # TODO select only one particular row or so 
 
 
-iterfolder = "hpcbatch_16_01_2020_iter/"
-####iterfolder = "hpcbatch_14_01_2020_225417_iter/"
+iterfolder="hpcbatch_29_01_2020_115110_iter/"
+iterfolder = "all_sims_iter/"
+#iterfolder = "hpcbatch_14_01_2020_225417_iter/"
 ############## auxiliary functions ##############
 print("it's go...")
 
@@ -94,7 +95,7 @@ def get_iter_data(df, iter_dir):
         # the iterations
         file_base_name = os.path.basename(file_name)
 
-        iter_file_name = os.path.join(iter_dir, file_base_name + "iters")
+        iter_file_name = os.path.join(iter_dir, file_base_name + "iters.csv")
 
         try:
             subdf = pd.read_csv(iter_file_name,sep=";")
@@ -130,8 +131,8 @@ def stress_multipanel(
 
     # get switching rates, which we use for the
     # individual panels
-    p_leave_u = list(subset["sP2NP_1"].unique())
-    p_arrive_u = list(subset["sNP2P_1"].unique())
+    p_leave_u = list(subset["sP2NP"].unique())
+    p_arrive_u = list(subset["sNP2P"].unique())
 
     # initialize multipanel fig
     the_fig = multipanel.MultiPanel(
@@ -161,8 +162,8 @@ def stress_multipanel(
 
             # subset selection
             subset_subset = subset[
-                    (subset["sP2NP_1"] == p_leave_i)
-                    & (subset["sNP2P_1"] == p_arrive_i)
+                    (subset["sP2NP"] == p_leave_i)
+                    & (subset["sNP2P"] == p_arrive_i)
                     ]
 
             # obtain the iteration file data
@@ -199,10 +200,12 @@ def stress_multipanel(
                                 (iteration_data["replicate"] == replicate_i)
                                 &  (iteration_data["individual"] == individual_i)]
 
+                        assert(iteration_subset.shape[0] > 0)
+
                         the_axis.plot(iteration_subset["time"]
-                                ,iteration_subset["stress"]
+                                ,iteration_subset["hormone"]
                                 ,color=the_color_map.colors[replicate_i]
-                                ,linewidth=0.5
+                                ,linewidth=1.0
                                 ,alpha=0.5
                                 ,label="_nolabel")
 
@@ -211,13 +214,13 @@ def stress_multipanel(
             # end the figure
             the_fig.end_block(
                     the_axis
-                    ,ylim=[-0.05,1.05]
+                    ,ylim=[-0.05,1.1]
                     ,y_ticks_minor = 1
                     ,x_ticks_minor = 1
                     ,x_ticks_major_multiple = 25
                     ,y_ticks_major_multiple = 0.25
                     ,xticks=True
-                    ,yticks=col_i == 0
+                    ,yticks=True
                     ,title=r"$\lambda_{P\rightarrow NP} = " + str(p_leave_i) + r"$, $\lambda_{NP\rightarrow P} = " +str(p_arrive_i) + "$"
                     ,ylabel=ylab
                     )
@@ -268,41 +271,45 @@ def stress_multipanel(
 
 zmax = 1
 dmax = 1
-aP = [ 0.5, 1, 2]
-ad = [ 0.5, 1, 2]
+aP = [ 1 ]
+ad = [ 0.5, 1, 1.5]
 
 
 # damage decay
 r = [1]
-u = [0.25, 0.5, 0.75,0.9, 1]
+u = [0.5, 0.5, 1.0]
+p_att = [ 0.8]
+pleio = [ 0, 0.5]
 
 filename = "stress_iteration_overview"
 
-init_feedback = [ 0, 1]
+#init_feedback = [ 0, 1]
 
-for init_feedback_i in init_feedback:
-    for aP_i in aP:
-        for ad_i in ad:
-            for r_i in r:
-                for u_i in u:
+for pleio_i in pleio:
+    for p_att_i in p_att:
+        for aP_i in aP:
+            for ad_i in ad:
+                for r_i in r:
+                    for u_i in u:
 
-                    filename_sub = filename +\
-                            "_fb_" + str(init_feedback_i) +\
-                            "_ad_" + str(ad_i) +\
-                            "_aP_" + str(aP_i) +\
-                            "_r_" + str(r_i) +\
-                            "_u_" + str(u_i)
+                        filename_sub = filename +\
+                                "_ad_" + str(ad_i) +\
+                                "_aP_" + str(aP_i) +\
+                                "_r_" + str(r_i) +\
+                                "_u_" + str(u_i) +\
+                                "_patt_" + str(p_att_i) +\
+                                "_pleio_" + str(pleio_i)
 
-                    stress_multipanel(
-                            {"init_stress_influx": 0
-                                ,"init_feedback": init_feedback_i
-                                ,"init_influx": 0
-                                ,"cue_P": 0
-                                ,"dmax": dmax
-                                ,"zmax":zmax
-                                ,"ad":ad_i
-                                ,"aP":aP_i
-                                ,"u":u_i
-                                ,"r":r_i
-                                }
-                            ,filename_sub + "_inits0.pdf")
+                        stress_multipanel(
+                                {"init_lstress_influx": 0
+                                    ,"init_lfeedback": 0
+                                    ,"init_linflux": 0
+                                    ,"cue_P": 0
+                                    ,"stress_baseline_influx_pleio":pleio_i
+                                    ,"p_att":p_att_i
+                                    ,"ad":ad_i
+                                    ,"aP":aP_i
+                                    ,"u":u_i
+                                    ,"r":r_i
+                                    }
+                                ,filename_sub + ".pdf")

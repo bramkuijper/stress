@@ -31,14 +31,13 @@ cue_P = [ 0.0 ]
 cue_NP = [ 0.0 ]
 
 # power of the damage cost function
-ad = [ 0.5, 0.9, 1.0, 1.5 ]
+ad = [ 0.5, 1.0, 1.5 ]
 
 # power of the hormone level survival function
-aP = [ 0.5, 0.9, 1.0, 1.5 ]
+aP = [ 1.0 ]
 
 damage_decay = [ 1.0 ]
-damage_due_to_hormone = [ 0.25, 0.5, 1.0 ]
-stress_baseline_influx_pleio = [ 0.0, 0.5, 0.9 ]
+damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
 nrep = 3
@@ -52,26 +51,26 @@ init_cue_influx = [0]
 init_influx = [0]
 
 # attack probability 
-p_att = [ 0.8, 1.0 ]
-pleiotropy = [ 0.0, 0.5 ]
+p_att = [ 0.5 ]
+pleiotropy = [ 0.0 ]
 maxtime = "200000"
 
 # attack probability
-mort_background = 0.1
+mort_background = 0.001
 
 exe = "./xstress"
 
 
 host = st.gethostname()
 
-background = False
-if re.search("anthoxanthum",host) is not None:
-    background = True
+background = True 
+if re.search("anthoxanthum",host) is not None and background:
+    background = False
 
 background_str = " & " if background else ""
 
 date = datetime.datetime.now()
-base_name = "sim_stress_" + f"{date:%d}_{date:%m}_{date:%Y}"
+base_name = "sim_stress_" + f"{date:%d}_{date:%m}_{date:%Y}_{date:%H}{date:%M}{date:%S}"
 
 # make all permutations of parameter combinations
 for rep_i in range(0,nrep):
