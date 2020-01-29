@@ -54,14 +54,14 @@ exe = "./xstress"
 
 host = st.gethostname()
 
-background = False
-if re.search("anthoxanthum",host) is not None:
-    background = True
+background = True 
+if re.search("anthoxanthum",host) is not None and background:
+    background = False
 
 background_str = " & " if background else ""
 
 date = datetime.datetime.now()
-base_name = "sim_stress_" + f"{date:%d}_{date:%m}_{date:%Y}"
+base_name = "sim_stress_" + f"{date:%d}_{date:%m}_{date:%Y}_{date:%H}{date:%M}{date:%S}"
 
 # make all permutations of parameter combinations
 for rep_i in range(0,nrep):
