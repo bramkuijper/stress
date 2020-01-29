@@ -79,6 +79,7 @@ double pr_envt_is_P = 0.0;
 double init_lfeedback = 0.0;
 double init_lcue_influx = 0.0;
 double init_lstress_influx = 0.0;
+double init_lstress_baseline_influx = 0.0;
 double init_linflux = 0.0;
 
 // cue probabilities
@@ -164,19 +165,20 @@ void init_arguments(int argc, char *argv[])
     init_lfeedback  = atof(argv[8]);
     init_lcue_influx  = atof(argv[9]);
     init_lstress_influx  = atof(argv[10]);
-    init_linflux  = atof(argv[11]);
-    cue_P  = atof(argv[12]);
-    cue_NP  = atof(argv[13]);
-    ad  = atof(argv[14]);
-    aP  = atof(argv[15]);
-    r = atof(argv[16]);
-    u = atof(argv[17]);
-    mort_background = atof(argv[18]);
-    p_att = atof(argv[19]);
-    stress_baseline_influx_pleio = atof(argv[20]);
-    maxtime = atoi(argv[21]);
-    ioind = atoi(argv[22]);
-    base_name = argv[23];
+    init_lstress_baseline_influx  = atof(argv[11]);
+    init_linflux  = atof(argv[12]);
+    cue_P  = atof(argv[13]);
+    cue_NP  = atof(argv[14]);
+    ad  = atof(argv[15]);
+    aP  = atof(argv[16]);
+    r = atof(argv[17]);
+    u = atof(argv[18]);
+    mort_background = atof(argv[19]);
+    p_att = atof(argv[20]);
+    stress_baseline_influx_pleio = atof(argv[21]);
+    maxtime = atoi(argv[22]);
+    ioind = atoi(argv[23]);
+    base_name = argv[24];
 
     // set equilibrium probabilities
     pr_envt_is_P = s_NP_2_P / (s_NP_2_P + s_P_2_NP);
@@ -235,6 +237,7 @@ void write_parameters(std::ofstream &DataFile)
 		<< "init_lfeedback;" << init_lfeedback << ";"<< std::endl
         << "init_lcue_influx;" << init_lcue_influx << ";"<< std::endl
 		<< "init_lstress_influx;" << init_lstress_influx << ";"<< std::endl
+		<< "init_lstress_baseline_influx;" << init_lstress_baseline_influx << ";"<< std::endl
 		<< "init_linflux;" << init_linflux << ";"<< std::endl
 		<< "cue_P;" << cue_P << ";"<< std::endl
 		<< "cue_NP;" << cue_NP << ";"<< std::endl
@@ -277,9 +280,9 @@ void init_population()
             logistic(0.5*(newInd.lfeedback[0] + newInd.lfeedback[1]));
         double influx =
             logistic(
-                    (1.0 - influx_pleio_pct)
+                    (1.0 - stress_baseline_influx_pleio)
                         * 0.5*(newInd.linflux[0] + newInd.linflux[1])
-                    + influx_pleio_pct
+                    + stress_baseline_influx_pleio
                         * 0.5*(newInd.lstress_baseline_influx[0] 
                                     + newInd.lstress_baseline_influx[1]));
 
@@ -357,9 +360,9 @@ void create_offspring(
 
     double influx =
         logistic(
-                (1.0 - influx_pleio_pct)
+                (1.0 - stress_baseline_influx_pleio)
                     * 0.5*(kid.linflux[0] + kid.linflux[1])
-                + influx_pleio_pct
+                + stress_baseline_influx_pleio
                     * 0.5*(kid.lstress_baseline_influx[0] 
                                 + kid.lstress_baseline_influx[1]));
 
@@ -437,20 +440,19 @@ void survive(std::ofstream &datafile)
 
             double stress_influx =
                 logistic(
-                        (1.0 - influx_pleio_pct)
-                            * 0.5*(pop[ind_i].lstress_influx[0] +
-                                      pop[ind_i].lstress_influx[1])
-                        + influx_pleio_pct * 
+                        (1.0 - stress_baseline_influx_pleio)
+                            * 0.5*(pop[ind_i].lstress_influx[0] + 
+                                    pop[ind_i].lstress_influx[1])
+                        + stress_baseline_influx_pleio * 
                             0.5*(pop[ind_i].lstress_baseline_influx[0] +
                                       pop[ind_i].lstress_baseline_influx[1])
                         );
 
             double influx = 
                 logistic(
-                        (1.0 - influx_pleio_pct)
-                            * 0.5*(pop[ind_i].linflux[0] +
-                                      pop[ind_i].linflux[1])
-                        + influx_pleio_pct * 
+                        (1.0 - stress_baseline_influx_pleio)
+                            * 0.5*(pop[ind_i].linflux[0] + pop[ind_i].linflux[1])
+                        + stress_baseline_influx_pleio * 
                             0.5*(pop[ind_i].lstress_baseline_influx[0] +
                                       pop[ind_i].lstress_baseline_influx[1])
                         );
@@ -563,14 +565,11 @@ void write_data(std::ofstream &DataFile)
     double ss_stress_influx = 0;
     double mean_influx = 0;
     double ss_influx = 0;
-
-    double mean_lstress_baseline_influx = 0;
-    double ss_lstress_baseline_influx = 0;
     
-    double mean_stress_influx_phen = 0;
-    double ss_stress_influx_phen = 0;
-    double mean_influx_phen = 0;
-    double ss_influx_phen = 0;
+    double mean_stress_influx_phenotype = 0;
+    double ss_stress_influx_phenotype = 0;
+    double mean_influx_phenotype = 0;
+    double ss_influx_phenotype = 0;
 
     double mean_hormone = 0;
     double ss_hormone = 0;
@@ -654,7 +653,10 @@ void write_data(std::ofstream &DataFile)
     double sd_stress_influx = sqrt(ss_stress_influx / Npop -
                                    pow(mean_stress_influx,2.0));
     double sd_influx = sqrt(ss_influx / Npop - pow(mean_influx,2.0));
-    double sd_stress_influx_phenotype = sqrt(ss_stress_influx_phenotype / Npop
+    double sd_stress_influx_phenotype = sqrt(ss_stress_influx_phenotype / Npop - 
+            pow(mean_stress_influx_phenotype, 2.0));
+    double sd_influx_phenotype = sqrt(ss_influx_phenotype / Npop - 
+            pow(mean_influx_phenotype, 2.0));
     double sd_hormone = sqrt(ss_hormone / Npop - pow(mean_hormone,2.0));
     double sd_damage = sqrt(ss_damage / Npop - pow(mean_damage,2.0));
 
@@ -664,12 +666,16 @@ void write_data(std::ofstream &DataFile)
         << mean_cue_influx << ";"
         << mean_stress_influx << ";"
         << mean_influx << ";"
+        << mean_influx_phenotype << ";"
+        << mean_stress_influx_phenotype << ";"
         << mean_hormone << ";"
         << mean_damage << ";"
         << sd_feedback << ";"
         << sd_cue_influx << ";"
         << sd_stress_influx << ";"
         << sd_influx << ";"
+        << sd_influx_phenotype << ";"
+        << sd_stress_influx_phenotype << ";"
         << sd_hormone << ";"
         << sd_damage << ";"
         << (double)Nmort_stats[1]/numP << ";"
@@ -688,12 +694,16 @@ void write_data_headers(std::ofstream &DataFile)
         << "mean_cue_influx" << ";"
         << "mean_stress_influx" << ";"
         << "mean_influx" << ";"
+        << "mean_influx_phenotype" << ";"
+        << "mean_stress_influx_phenotype" << ";"
         << "mean_hormone" << ";"
         << "mean_damage" << ";"
         << "sd_feedback" << ";"
         << "sd_cue_influx" << ";"
         << "sd_stress_influx" << ";"
         << "sd_influx" << ";"
+        << "sd_influx_phenotype" << ";"
+        << "sd_stress_influx_phenotype" << ";"
         << "sd_hormone" << ";"
         << "sd_damage" << ";"
         << "prop_dead_P" << ";"
@@ -735,11 +745,21 @@ void write_simple_iter(std::ofstream &IterFile)
             logistic(0.5*(ind.lcue_influx[0] +
                           ind.lcue_influx[1]));
         double stress_influx =
-            logistic(0.5*(ind.lstress_influx[0] +
-                          ind.lstress_influx[1]));
-        double influx =
-            logistic(0.5*(ind.linflux[0] +
-                          ind.linflux[1]));
+            logistic(
+                    (1.0 - stress_baseline_influx_pleio)
+                        * 0.5*(ind.lstress_influx[0] + ind.lstress_influx[1])
+                    + stress_baseline_influx_pleio * 
+                        0.5*(ind.lstress_baseline_influx[0] +
+                                  ind.lstress_baseline_influx[1])
+                    );
+        double influx = 
+            logistic(
+                    (1.0 - stress_baseline_influx_pleio)
+                        * 0.5*(ind.linflux[0] + ind.linflux[1])
+                    + stress_baseline_influx_pleio * 
+                        0.5*(pop[ind_i].lstress_baseline_influx[0] +
+                                  pop[ind_i].lstress_baseline_influx[1])
+                    );
 
         // hormone background level
         double hormone0 = (feedback > 0) ? influx/feedback : 1.0;
@@ -802,6 +822,8 @@ void read_pop_from_file(std::string infilename)
             infile >> indi.lcue_influx[1];
             infile >> indi.lstress_influx[0];
             infile >> indi.lstress_influx[1];
+            infile >> indi.lstress_baseline_influx[0];
+            infile >> indi.lstress_baseline_influx[1];
             infile >> indi.linflux[0];
             infile >> indi.linflux[1];
             infile >> feedback;
@@ -841,6 +863,7 @@ void write_pop_to_file(std::ofstream &PopFile)
     PopFile << "lfeedback1" << "\t" << "lfeedback2" << "\t"
         << "lcue_influx1" << "\t" << "lcue_influx2" << "\t"
         << "lstress_influx1" << "\t" << "lstress_influx2" << "\t"
+        << "lstress_baseline_influx1" << "\t" << "lstress_baseline_influx2" << "\t"
         << "linflux1" << "\t" << "linflux2" << "\t"
         << "feedback" << "\t"
         << "cue_influx" << "\t"
@@ -860,17 +883,30 @@ void write_pop_to_file(std::ofstream &PopFile)
             logistic(0.5*(pop[ind_i].lcue_influx[0] +
                           pop[ind_i].lcue_influx[1]));
         double stress_influx =
-            logistic(0.5*(pop[ind_i].lstress_influx[0] +
-                          pop[ind_i].lstress_influx[1]));
-        double influx =
-            logistic(0.5*(pop[ind_i].linflux[0] +
-                          pop[ind_i].linflux[1]));
+            logistic(
+                    (1.0 - stress_baseline_influx_pleio)
+                        * 0.5*(pop[ind_i].lstress_influx[0] + 
+                                pop[ind_i].lstress_influx[1])
+                    + stress_baseline_influx_pleio * 
+                        0.5*(pop[ind_i].lstress_baseline_influx[0] +
+                                  pop[ind_i].lstress_baseline_influx[1])
+                    );
+        double influx = 
+            logistic(
+                    (1.0 - stress_baseline_influx_pleio)
+                        * 0.5*(pop[ind_i].linflux[0] + pop[ind_i].linflux[1])
+                    + stress_baseline_influx_pleio * 
+                        0.5*(pop[ind_i].lstress_baseline_influx[0] +
+                                  pop[ind_i].lstress_baseline_influx[1])
+                    );
         PopFile << pop[ind_i].lfeedback[0] << "\t"
                 << pop[ind_i].lfeedback[1] << "\t"
                 << pop[ind_i].lcue_influx[0] << "\t"
                 << pop[ind_i].lcue_influx[1] << "\t"
                 << pop[ind_i].lstress_influx[0] << "\t"
                 << pop[ind_i].lstress_influx[1] << "\t"
+                << pop[ind_i].lstress_baseline_influx[0] << "\t"
+                << pop[ind_i].lstress_baseline_influx[1] << "\t"
                 << pop[ind_i].linflux[0] << "\t"
                 << pop[ind_i].linflux[1] << "\t"
                 << feedback << "\t"
