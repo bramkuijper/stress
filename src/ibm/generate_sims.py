@@ -4,7 +4,7 @@ import numpy as np
 import socket as st
 
 mu_feedback = [0.02]
-mu_cue_stress_influx_combis = [[0.02,0.0]]
+mu_stress_cue_influx_combis = [[0.02,0.0]]
 mu_influx = [0.02]
 sdmu = [ 0.02]
 
@@ -23,9 +23,6 @@ for s1_i in s_P2NP_pre:
 
 for s1_i in s_NP2P_pre:
     s_NP2P += [[s1_i,s1_i]]
-
-# from one world to another
-s_12 = [[ 0.1,0.1]]
 
 #cue_P = [ 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
 #cue_NP = [ 0.0, 0.2, 0.3, 0.4 ]
@@ -55,9 +52,9 @@ init_cue_influx = [0]
 init_influx = [0]
 
 # attack probability 
-p_att = [ 0.8 ]
-pleiotropy = [ 0.0, 0.1, 0.5, 0.9 ]
-maxtime = "5"
+p_att = [ 0.8, 1.0 ]
+pleiotropy = [ 0.0, 0.5 ]
+maxtime = "200000"
 
 # attack probability
 mort_background = 0.1
@@ -79,7 +76,7 @@ base_name = "sim_stress_" + f"{date:%d}_{date:%m}_{date:%Y}"
 # make all permutations of parameter combinations
 for rep_i in range(0,nrep):
     for mu_feedback_i in mu_feedback:
-        for stress_cue_influx_i in mu_cue_stress_influx_combis:
+        for stress_cue_influx_i in mu_stress_cue_influx_combis:
     
             mu_stress_influx_i = stress_cue_influx_i[0]
             mu_cue_influx_i = stress_cue_influx_i[1]
