@@ -12,8 +12,8 @@ sdmu = [ 0.02]
 #s_P2NP = [[0.01,0.02],[ 0.04,0.08], [ 0.1,0.2]]
 #s_NP2P = [[0.005,0.01], [ 0.02,0.04], [ 0.05, 0.1]]
 
-s_P2NP = [ 0.1, 0.5, 0.9 ]
-s_NP2P = [ 0.1, 0.5, 0.9 ]
+s_P2NP = [ 0.9 ]
+s_NP2P = [ 0.1 ]
 
 #cue_P = [ 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
 #cue_NP = [ 0.0, 0.2, 0.3, 0.4 ]
@@ -22,32 +22,32 @@ cue_P = [ 0.0 ]
 cue_NP = [ 0.0 ]
 
 # power of the damage cost function
-ad = [ 0.5, 0.9, 1.0, 1.5 ]
+ad = [ 2.0 ]
 
 # power of the hormone level survival function
-aP = [ 1.0 ]
+aP = [ 0.2 ]
 
 damage_decay = [ 1.0 ]
-damage_due_to_hormone = [ 0.5, 0.75, 1.0 ]
+damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
 nrep = 3
 
 ctr = 0
 
-init_feedback = [0]
-init_stress_influx = [0]
-init_stress_baseline_influx = [0]
-init_cue_influx = [0]
+init_feedback = [-1.0]
+init_stress_influx = [-4.0]
+init_stress_baseline_influx = [-1.7]
+init_cue_influx = [10]
 init_influx = [0]
 
 # attack probability 
-p_att = [ 0.8, 1.0 ]
-pleiotropy = [ 0.0, 0.5 ]
+p_att = [ 0.5 ]
+pleiotropy = [ 0.0 ]
 maxtime = "200000"
 
 # attack probability
-mort_background = 0.1
+mort_background = 0.001
 
 exe = "./xstress"
 

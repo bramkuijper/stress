@@ -132,10 +132,9 @@ gs = gridspec.GridSpec(
     width_ratios=widths,
     height_ratios=heights)
 
+row_ctr = 0 
 
-# start next entry of the graph
-# the number of acts * their efficiency
-ax = plt.subplot(gs[0,0])
+ax = plt.subplot(gs[row_ctr,0])
 
 ax.plot(
     dat["generation"],
@@ -145,13 +144,13 @@ ax.plot(
     )
 
 ax.fill_between(
-    x=dat["generation"],
-    y1=dat["mean_feedback"] + dat["var_feedback"].apply(np.sqrt),
-    y2=dat["mean_feedback"] - dat["var_feedback"].apply(np.sqrt),
-    label="_nolabel",
-    color="red",
-    alpha=0.1,
-    linewidth=0
+    x=dat["generation"]
+    ,y1=dat["mean_feedback"] + dat["sd_feedback"]
+    ,y2=dat["mean_feedback"] - dat["sd_feedback"]
+    ,label="_nolabel"
+    ,color="red"
+    ,alpha=0.1
+    ,linewidth=0
     )
 
 ax.set_ylabel(r"Feedback, $f$" + "\n" + r"where $h_{t+1} = (1-f) h_{t}$")
@@ -162,10 +161,23 @@ ax.tick_params(
     labelbottom=False)
 
 
+row_ctr += 1
+
+
 # plot influxes 
-ax = plt.subplot(gs[1,0])
+ax = plt.subplot(gs[row_ctr,0])
 
 ax.set_ylabel(r"Influx")
+
+ax.fill_between(
+    x=dat["generation"],
+    y1=dat["mean_influx"] + dat["sd_influx"],
+    y2=dat["mean_influx"] - dat["sd_influx"],
+    label="_nolabel",
+    color="blue",
+    alpha=0.1,
+    linewidth=0
+    )
 
 ax.plot(
     dat["generation"],
@@ -173,12 +185,13 @@ ax.plot(
     label="Influx",
     color="blue")
 
+
 ax.fill_between(
     x=dat["generation"],
-    y1=dat["mean_influx"] + dat["var_influx"].apply(np.sqrt),
-    y2=dat["mean_influx"] - dat["var_influx"].apply(np.sqrt),
+    y1=dat["mean_stress_influx"] + dat["sd_stress_influx"],
+    y2=dat["mean_stress_influx"] - dat["sd_stress_influx"],
     label="_nolabel",
-    color="blue",
+    color="red",
     alpha=0.1,
     linewidth=0
     )
@@ -191,13 +204,19 @@ ax.plot(
 
 ax.fill_between(
     x=dat["generation"],
-    y1=dat["mean_stress_influx"] + dat["var_stress_influx"].apply(np.sqrt),
-    y2=dat["mean_stress_influx"] - dat["var_stress_influx"].apply(np.sqrt),
+    y1=dat["mean_cue_influx"] + dat["sd_cue_influx"],
+    y2=dat["mean_cue_influx"] - dat["sd_cue_influx"],
     label="_nolabel",
-    color="red",
+    color="green",
     alpha=0.1,
     linewidth=0
     )
+
+ax.plot(
+    dat["generation"],
+    dat["mean_cue_influx"],
+    label="Cue influx",
+    color="green")
 
 ax.legend()
 
@@ -207,7 +226,8 @@ ax.tick_params(
     labelbottom=False)
 
 ####### plot damage #######
-ax = plt.subplot(gs[2,0])
+row_ctr += 1
+ax = plt.subplot(gs[row_ctr,0])
 
 ax.plot(
     dat["generation"],
@@ -223,7 +243,8 @@ ax.tick_params(
 
 
 ####### plot hormones #######
-ax = plt.subplot(gs[3,0])
+row_ctr += 1 
+ax = plt.subplot(gs[row_ctr,0])
 
 ax.plot(
     dat["generation"],
@@ -237,54 +258,56 @@ ax.tick_params(
     which="both",
     labelbottom=False)
 
-####### plot variances #######
-ax = plt.subplot(gs[4,0])
+####### plot stdevs #######
+row_ctr += 1
+ax = plt.subplot(gs[row_ctr,0])
 
 ax.plot(
     dat["generation"],
-    dat["var_feedback"],
+    dat["sd_feedback"],
     label="Feedback")
 
 ax.plot(
     dat["generation"],
-    dat["var_stress_influx"],
+    dat["sd_stress_influx"],
     label="Stress influx")
 
 ax.plot(
     dat["generation"],
-    dat["var_influx"],
+    dat["sd_influx"],
     label="Influx")
 
 ax.plot(
     dat["generation"],
-    dat["var_hormone"],
+    dat["sd_hormone"],
     label="Hormone")
 
 ax.plot(
     dat["generation"],
-    dat["var_damage"],
+    dat["sd_damage"],
     label="Damage")
 
 ax.legend()
-ax.set_ylabel(r"Var")
+ax.set_ylabel(r"SD")
 
 ax.set_xlabel(r"Generation")
 
 ####### plot stress response curve over time #######
 
-ax = plt.subplot(gs[5,0])
+row_ctr += 1
+ax = plt.subplot(gs[row_ctr,0])
 
 zt = float(dat["mean_hormone"][-1:])
-var_zt = float(dat["var_hormone"][-1:])
+sd_zt = float(dat["sd_hormone"][-1:])
 
 feedback = float(dat["mean_feedback"][-1:])
-var_feedback = float(dat["var_feedback"][-1:])
+sd_feedback = float(dat["sd_feedback"][-1:])
 
 influx = float(dat["mean_influx"][-1:])
-var_influx = float(dat["var_influx"][-1:])
+sd_influx = float(dat["sd_influx"][-1:])
 
 stress_influx = float(dat["mean_stress_influx"][-1:])
-var_stress_influx = float(dat["var_stress_influx"][-1:])
+sd_stress_influx = float(dat["sd_stress_influx"][-1:])
 
 nrep = 1000
 
@@ -292,22 +315,22 @@ for i in range(0,nrep):
 
     zt_val = np.random.normal(
             loc=zt, 
-            scale=var_zt,
+            scale=sd_zt,
             size=1)
 
     feedback_val = np.random.normal(
             loc=feedback, 
-            scale=np.sqrt(var_feedback),
+            scale=sd_feedback,
             size=1)
 
     influx_val = np.random.normal(
             loc=influx, 
-            scale=var_influx,
+            scale=sd_influx,
             size=1)
 
     stress_influx_val = np.random.normal(
             loc=stress_influx, 
-            scale=var_stress_influx,
+            scale=sd_stress_influx,
             size=1)
 
     time = list(range(0,30))
@@ -363,7 +386,8 @@ ax.set_xlabel(r"Time")
 
 
 #### mortality  ####
-ax = plt.subplot(gs[6,0])
+row_ctr += 1
+ax = plt.subplot(gs[row_ctr,0])
 
 ax.plot(dat["generation"]
         ,dat["prop_dead_P"]
