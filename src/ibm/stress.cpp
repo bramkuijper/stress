@@ -288,13 +288,9 @@ void init_population()
                         * 0.5*(newInd.lstress_baseline_influx[0] 
                                     + newInd.lstress_baseline_influx[1]));
 
-        std::cout << init_linflux << std::endl;
-        std::cout << influx << std::endl;
-        std::cout << feedback << std::endl;
         newInd.hormone = (feedback > 0) ? influx/feedback : 1.0;
         clamp(newInd.hormone, 0.0, 1.0);
 
-        std::cout << newInd.hormone << std::endl;
 
         newInd.damage = (r > 0) ? u * newInd.hormone/r : 1.0;
         clamp(newInd.damage, 0.0, 1.0);
@@ -736,7 +732,7 @@ void write_simple_iter(std::ofstream &IterFile)
 
     Individual ind;
 
-    IterFile << "time;individual;hormone;" << std::endl;
+    IterFile << "type;time;individual;hormone;" << std::endl;
 
     std::uniform_int_distribution<int> rint(0, Npop - 1);
 

@@ -5,7 +5,7 @@ from pythontools import multipanel
 import pandas as pd
 from matplotlib import cm
 import os.path
-import sys
+import sys, re
 
 import matplotlib as mpl
 mpl.use("pgf")
@@ -59,8 +59,6 @@ assert(the_data.shape[0] > 0)
 # TODO select only one particular row or so 
 
 
-iterfolder="hpcbatch_29_01_2020_115110_iter/"
-iterfolder = "all_sims_iter/"
 #iterfolder = "hpcbatch_14_01_2020_225417_iter/"
 ############## auxiliary functions ##############
 print("it's go...")
@@ -79,7 +77,7 @@ def make_query(the_dict):
 
 # from a summary data frame obtain filenames
 # and extract iteration data from those
-def get_iter_data(df, iter_dir):
+def get_iter_data(df):
 
     # get list of filenames
     file_list = list(df["file"].unique())
@@ -94,6 +92,13 @@ def get_iter_data(df, iter_dir):
         # get the filename of the filename containing
         # the iterations
         file_base_name = os.path.basename(file_name)
+
+        file_dir_name = os.path.dirname(file_name)
+
+        # remove trailing "/"
+        file_dir_name = re.sub("\/$","",file_dir_name)
+
+        iter_dir = file_dir_name + "_iter"
 
         iter_file_name = os.path.join(iter_dir, file_base_name + "iters.csv")
 
@@ -167,7 +172,7 @@ def stress_multipanel(
                     ]
 
             # obtain the iteration file data
-            iteration_data = get_iter_data(subset_subset,iterfolder)
+            iteration_data = get_iter_data(subset_subset)
 
             ######## make each panel ########
             the_axis = the_fig.start_block(
@@ -269,17 +274,19 @@ def stress_multipanel(
 
     the_fig.close(tight=True)
 
+
+# specify parameter values
 zmax = 1
 dmax = 1
-aP = [ 1 ]
-ad = [ 0.5, 1, 1.5]
+aP = [ 0.2 ]
+ad = [ 2 ]
 
 
 # damage decay
 r = [1]
-u = [0.5, 0.5, 1.0]
-p_att = [ 0.8]
-pleio = [ 0, 0.5]
+u = [1]
+p_att = [ 0.5]
+pleio = [ 0, 0.8]
 
 filename = "stress_iteration_overview"
 
@@ -301,10 +308,8 @@ for pleio_i in pleio:
                                 "_pleio_" + str(pleio_i)
 
                         stress_multipanel(
-                                {"init_lstress_influx": 0
-                                    ,"init_lfeedback": 0
-                                    ,"init_linflux": 0
-                                    ,"cue_P": 0
+                                {
+                                    "cue_P": 0
                                     ,"stress_baseline_influx_pleio":pleio_i
                                     ,"p_att":p_att_i
                                     ,"ad":ad_i
