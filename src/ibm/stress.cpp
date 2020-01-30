@@ -232,6 +232,7 @@ void write_parameters(std::ofstream &DataFile)
 		<< "mu_stress_influx;" << mu_stress_influx << ";"<< std::endl
 		<< "stress_baseline_influx_pleio;" << stress_baseline_influx_pleio << ";"<< std::endl
 		<< "mu_influx;" << mu_influx << ";"<< std::endl
+		<< "sdmu;" << sdmu << ";"<< std::endl
 		<< "sP2NP;" << s_P_2_NP << ";"<< std::endl
 		<< "sNP2P;" << s_NP_2_P << ";"<< std::endl
 		<< "init_lfeedback;" << init_lfeedback << ";"<< std::endl
@@ -278,6 +279,7 @@ void init_population()
         // Note from Olle: tried to do this below
         double feedback =
             logistic(0.5*(newInd.lfeedback[0] + newInd.lfeedback[1]));
+
         double influx =
             logistic(
                     (1.0 - stress_baseline_influx_pleio)
@@ -286,8 +288,13 @@ void init_population()
                         * 0.5*(newInd.lstress_baseline_influx[0] 
                                     + newInd.lstress_baseline_influx[1]));
 
+        std::cout << init_linflux << std::endl;
+        std::cout << influx << std::endl;
+        std::cout << feedback << std::endl;
         newInd.hormone = (feedback > 0) ? influx/feedback : 1.0;
         clamp(newInd.hormone, 0.0, 1.0);
+
+        std::cout << newInd.hormone << std::endl;
 
         newInd.damage = (r > 0) ? u * newInd.hormone/r : 1.0;
         clamp(newInd.damage, 0.0, 1.0);

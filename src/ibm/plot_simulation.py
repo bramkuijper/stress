@@ -202,21 +202,23 @@ ax.plot(
     label="Stress influx",
     color="red")
 
-ax.fill_between(
-    x=dat["generation"],
-    y1=dat["mean_cue_influx"] + dat["sd_cue_influx"],
-    y2=dat["mean_cue_influx"] - dat["sd_cue_influx"],
-    label="_nolabel",
-    color="green",
-    alpha=0.1,
-    linewidth=0
-    )
+if "mean_cue_influx" in dat.columns.values:
 
-ax.plot(
-    dat["generation"],
-    dat["mean_cue_influx"],
-    label="Cue influx",
-    color="green")
+    ax.fill_between(
+        x=dat["generation"],
+        y1=dat["mean_cue_influx"] + dat["sd_cue_influx"],
+        y2=dat["mean_cue_influx"] - dat["sd_cue_influx"],
+        label="_nolabel",
+        color="green",
+        alpha=0.1,
+        linewidth=0
+        )
+
+    ax.plot(
+        dat["generation"],
+        dat["mean_cue_influx"],
+        label="Cue influx",
+        color="green")
 
 ax.legend()
 

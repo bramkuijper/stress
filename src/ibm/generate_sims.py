@@ -3,10 +3,41 @@ import os, re, sys, math, datetime
 import numpy as np
 import socket as st
 
-mu_feedback = [0.02]
-mu_stress_cue_influx_combis = [[0.02,0.0]]
-mu_influx = [0.02]
-sdmu = [ 0.02]
+
+class OptHorm:
+
+    def __init__(self, ad, mu_bg, s1, s2, p_att, ap):
+        self.ad = ad
+        self.mu_bg = mu_bg
+        self.pr_P = s2 / (s1 + s2)
+        self.p_att = p_att
+        self.ap = ap
+
+    def mort(self, h):
+        return(self.mu_bg +\ 
+                (1.0 - self.mu_bg) * self.pr_P * self.p_att * (1 - h**self.ap))
+
+    def repr(self, h):
+        return(1.0 - h**self.ad)
+
+    def lrs(self, h):
+
+        # reproductive success is (1 - mort) * repr
+        # lifespan = 1/mort(h)
+        return((1.0 - self.mort(h) * self.repr(h) / self.mort(h)))
+
+
+def logistic(x):
+    return(1.0 / (1.0 + np.exp(x)))
+
+def logit(x):
+    return(np.log(x/(1.0 - x)))
+
+
+mu_feedback = [0.001]
+mu_stress_cue_influx_combis = [[0.001,0.0]]
+mu_influx = [0.001]
+sdmu = [ 0.10]
 
 # switch rate from P to NP
 #s_P2NP = [[0.01,0.02],[ 0.04,0.08], [ 0.1,0.2]]
@@ -31,15 +62,15 @@ damage_decay = [ 1.0 ]
 damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
-nrep = 3
+nrep = 1
 
 ctr = 0
 
 init_feedback = [-1.0]
 init_stress_influx = [-4.0]
-init_stress_baseline_influx = [-1.7]
+init_stress_baseline_influx = [0]
 init_cue_influx = [10]
-init_influx = [0]
+init_influx = [-1.5]
 
 # attack probability 
 p_att = [ 0.5 ]
@@ -54,7 +85,7 @@ exe = "./xstress"
 
 host = st.gethostname()
 
-background = True 
+background = False
 if re.search("anthoxanthum",host) is not None and background:
     background = False
 
@@ -104,9 +135,8 @@ for rep_i in range(0,nrep):
                                                                                         + str(sdmu_i) + " " 
                                                                                         + str(s_P2NP_i) + " " 
 
-                                                                                        + str(s_P2NP_i) + " " 
+                                                                                        + str(s_NP2P_i) + " " 
                                                                                         + str(init_feedback_i) + " " 
-
                                                                                         + str(init_cue_influx_i) + " " 
                                                                                         + str(init_stress_influx_i) + " " 
                                                                                         + str(init_stress_baseline_influx_i) + " " 
