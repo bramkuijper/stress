@@ -58,8 +58,8 @@ sdmu = [ 0.10]
 #s_P2NP = [[0.01,0.02],[ 0.04,0.08], [ 0.1,0.2]]
 #s_NP2P = [[0.005,0.01], [ 0.02,0.04], [ 0.05, 0.1]]
 
-s_P2NP = [ 0.1, 0.5, 0.9 ]
-s_NP2P = [ 0.1, 0.5, 0.9 ]
+s_P2NP = [ 0.1 ]
+s_NP2P = [ 0.1 ]
 
 #cue_P = [ 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
 #cue_NP = [ 0.0, 0.2, 0.3, 0.4 ]
@@ -68,10 +68,10 @@ cue_P = [ 0.0 ]
 cue_NP = [ 0.0 ]
 
 # power of the damage cost function
-ad = [ 2.0 ]
+ad = [ 1.0 ]
 
 # power of the hormone level survival function
-aP = [ 0.5, 0.9, 1.0, 1.5 ]
+aP = [ 1.5 ]
 
 damage_decay = [ 1.0 ]
 damage_due_to_hormone = [ 1.0 ]
@@ -81,15 +81,17 @@ nrep = 3
 
 ctr = 0
 
-init_lfeedback = [-1.0]
-init_lstress_influx = [-4.0]
-init_lstress_baseline_influx = [-4.0]
+init_lfeedback = list(np.linspace(-4.0,4.0,10)) 
+init_lstress_influx = list(np.linspace(-4.0,4.0,10))
+init_lstress_baseline_influx = 
+init_lstress_influx = list(np.linspace(-4.0,4.0,10))
+
 init_lcue_influx = init_lstress_influx
 init_linflux = [-1.5]
 
 # attack probability 
 p_att = [ 0.5 ]
-pleiotropy = [ 0.0, 0.8 ]
+pleiotropy = [ 0.0 ]
 maxtime = "200000"
 
 # attack probability
@@ -165,38 +167,45 @@ for rep_i in range(0,nrep):
                                                                             # this parameter combination
                                                                             h_opt = sol["x"]
 
+                                                                            # getthe logistic feedback value
+                                                                            feedback = logistic(init_lfeedback_i)
+
                                                                             # now holding lfeedback value fixed
                                                                             # calculate value of influx
-                                                                            influx = h_opt * logistic(init_lfeedback_i)
+                                                                            pr_baseline = feedback / (feedback * h_opt + influx)
+
+                                                                            init_lpr_baseline = 
 
                                                                             # transform back to original logistic scale
                                                                             init_linflux_i = round(logit(influx),2)
 
                                                                             print(exe + " " 
                                                                                     + str(mu_feedback_i) + " " 
-                                                                                    + str(mu_cue_influx_i) + " " 
+                                                                                    + str(mu_pr_baseline) + " " 
 
-                                                                                    + str(mu_stress_influx_i) + " " 
-                                                                                    + str(mu_influx_i) + " " 
+                                                                                    + str(mu_max_influx) + " " 
 
                                                                                     + str(sdmu_i) + " " 
                                                                                     + str(s_P2NP_i) + " " 
-
                                                                                     + str(s_NP2P_i) + " " 
+
                                                                                     + str(init_lfeedback_i) + " " 
-                                                                                    + str(init_lcue_influx_i) + " " 
-                                                                                    + str(init_lstress_influx_i) + " " 
-                                                                                    + str(init_lstress_baseline_influx_i) + " " 
-                                                                                    + str(init_linflux_i) + " " 
+                                                                                    + str(init_lpr_baseline) + " " 
+                                                                                    + str(init_lmax_influx) + " " 
+
                                                                                     + str(cue_P_i) + " " 
-
                                                                                     + str(cue_NP_i) + " " 
+
+                                                                                    + str(s0) + " " 
                                                                                     + str(ad_i) + " " 
-
                                                                                     + str(aP_i) + " " 
-                                                                                    + str(r_i) + " " 
 
+                                                                                    + str(dmax) + " " 
+                                                                                    + str(zmax) + " " 
+
+                                                                                    + str(r_i) + " " 
                                                                                     + str(u_i) + " " 
+
                                                                                     + str(mort_background) + " " 
 
                                                                                     + str(p_att_i) + " " 
