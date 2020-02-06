@@ -67,11 +67,11 @@ s_NP2P = [ 0.1, 0.5, 0.9 ]
 cue_P = [ 0.0 ]
 cue_NP = [ 0.0 ]
 
-# power of the damage cost function
-ad = [ 2.0 ]
-
 # power of the hormone level survival function
-aP = [ 0.5, 0.9, 1.0, 1.5 ]
+aP = [ 1.0 ]
+
+# power of the damage cost function
+ad = [ 0.5, 0.9, 1.0, 1.5 ]
 
 damage_decay = [ 1.0 ]
 damage_due_to_hormone = [ 1.0 ]
