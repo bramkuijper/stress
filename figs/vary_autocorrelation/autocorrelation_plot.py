@@ -107,6 +107,10 @@ def get_iter_data(df):
 
             subdf["replicate"] = replicate
 
+            subdf = subdf.loc[subdf["type"] == "att"]
+
+            assert(subdf.shape[0] > 0)
+
             if iter_df is None:
                 iter_df = subdf
             else:
@@ -278,20 +282,22 @@ def stress_multipanel(
 # specify parameter values
 zmax = 1
 dmax = 1
-aP = [ 0.2 ]
-ad = [ 2 ]
+aP = [1]
+ad = [ 0.5, 0.9, 1.0, 1.5 ]
 
 
 # damage decay
-r = [1]
-u = [1]
+r = [1.0]
+u = [1.0]
 p_att = [ 0.5]
 pleio = [ 0, 0.8]
 
-filename = "stress_iteration_overview"
+# https://stackoverflow.com/questions/27637281/what-are-python-pandas-equivalents-for-r-functions-like-str-summary-and-he 
+def rstr(df): return df.shape, df.apply(lambda x: [x.unique()])
 
-#init_feedback = [ 0, 1]
+print(rstr(the_data[["cue_P","cue_NP","stress_baseline_influx_pleio","aP","ad","p_att","u","r"]]))
 
+graphname = "stress_iteration_overview"
 for pleio_i in pleio:
     for p_att_i in p_att:
         for aP_i in aP:
@@ -299,7 +305,7 @@ for pleio_i in pleio:
                 for r_i in r:
                     for u_i in u:
 
-                        filename_sub = filename +\
+                        filename_sub = graphname +\
                                 "_ad_" + str(ad_i) +\
                                 "_aP_" + str(aP_i) +\
                                 "_r_" + str(r_i) +\
@@ -313,8 +319,8 @@ for pleio_i in pleio:
                                     ,"stress_baseline_influx_pleio":pleio_i
                                     ,"p_att":p_att_i
                                     ,"ad":ad_i
-                                    ,"aP":aP_i
-                                    ,"u":u_i
-                                    ,"r":r_i
+                                    #,"aP":aP_i
+                                    #,"u":u_i
+                                    #,"r":r_i
                                     }
                                 ,filename_sub + ".pdf")
