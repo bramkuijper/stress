@@ -163,25 +163,32 @@ void init_arguments(int argc, char *argv[])
     mu_stress_influx  = atof(argv[2]);
     mu_influx  = atof(argv[3]);
     mu_hstart  = atof(argv[4]);
+
     sdmu_feedback = atof(argv[5]);
     sdmu_stress_influx = atof(argv[6]);
     sdmu_influx = atof(argv[7]);
     sdmu_hstart = atof(argv[8]);
+
     s_P_2_NP  = atof(argv[9]);
     s_NP_2_P  = atof(argv[10]);
+
     init_feedback  = atof(argv[11]);
     init_stress_influx  = atof(argv[12]);
     init_influx  = atof(argv[13]);
     init_hstart  = atof(argv[14]);
+
     cue_P  = atof(argv[15]);
     cue_NP  = atof(argv[16]);
+
     s0  = atof(argv[17]);
     ad  = atof(argv[18]);
     aP  = atof(argv[19]);
     dmax  = atof(argv[20]);
     zmax  = atof(argv[21]);
+
     r = atof(argv[22]);
     u = atof(argv[23]);
+
     mort_background = atof(argv[24]);
     p_att = atof(argv[25]);
     NumGen = atoi(argv[26]);
