@@ -163,11 +163,12 @@ def single_panel(
     None.
 
     """
-    thin_line_color = "#46a9ff"
+    sim_line_color = "#46a9ff"
+    sim_line_alpha = 0.2
+    dp_line_color = "black"
+    dp_line_alpha = 0.5
 #    thin_line_color = "grey"
     
-    assert(data_dp.shape[0] == 1)
-    assert(data_sims.shape[0] > 0)
     
     ######## make a single panel ########
     the_axis = multipanel_obj.start_block(
@@ -178,23 +179,16 @@ def single_panel(
     # get colors
     the_color_map = cm.get_cmap("tab10")
     
-    assert("file" in data_sims.columns.values)
+    iteration_data = None
         
-    dirname = os.path.dirname(str(data_sims["file"][0]))
-
-    # obtain the iteration file data
-    iteration_data = get_iter_data(
-        data_sims
-        ,iter_dir=dirname)
-
+    if data_sims.shape[0] > 0:
+        dirname = os.path.dirname(str(data_sims["file"].values[0]))
     
-    assert("time" in iteration_data.columns.values)    
-    assert("hormone" in iteration_data.columns.values)
-    assert("individual" in iteration_data.columns.values)
-    assert("replicate" in iteration_data.columns.values)
+        # obtain the iteration file data
+        iteration_data = get_iter_data(
+            data_sims
+            ,iter_dir=dirname)
 
-
-    
     if type(iteration_data) == type(pd.DataFrame()):
 
         iteration_data = iteration_data.loc[
@@ -207,8 +201,7 @@ def single_panel(
 
         # get list of unique replicates per parameter combination
         replicates = list(iteration_data["replicate"].unique())
-
-        
+       
         # get list of unique individuals per replicate
         individuals = list(iteration_data["individual"].unique())
 
@@ -227,31 +220,35 @@ def single_panel(
 
                 the_axis.plot(iteration_subset["time"]
                         ,iteration_subset["hormone"]
-                        ,color=thin_line_color
+                        ,color=sim_line_color
                         ,linewidth=0.5
-                        ,alpha=0.25
+                        ,alpha=sim_line_alpha
                         ,label="_nolabel")
                 
-    dp_iter = get_dp_iter(filename=str(data_dp["file"].values[0]))
-    
-    dp_iter = dp_iter.loc[(dp_iter["t"] >= xlim[0])
-                          & (dp_iter["t"] <= xlim[1])]
-    
- 
-    timepoints = [min_time_iter + newzero, -1, 0] + list(dp_iter["t"].values[:])
-    hormone = [dp_iter["hormone"].values[-1]
-               ,dp_iter["hormone"].values[-1]
-               ,dp_iter["hormone"].values[0]
-               ] + list(dp_iter["hormone"].values[:])
-    
-    hormone = [ i/1000 for i in hormone ]
-    
-    # now plot the dp data
-    the_axis.plot(timepoints
-                  ,hormone
-                  ,color="black"
-                  ,alpha=0.5
-                  ,linewidth=4)          
+                
+    if data_dp.shape[0] == 1:
+                    
+        dp_iter = get_dp_iter(
+            filename=str(data_dp["file"].values[0]))
+        
+        dp_iter = dp_iter.loc[(dp_iter["t"] >= xlim[0])
+                              & (dp_iter["t"] <= xlim[1])]
+        
+     
+        timepoints = [min_time_iter + newzero, -1, 0] + list(dp_iter["t"].values[:])
+        hormone = [dp_iter["hormone"].values[-1]
+                   ,dp_iter["hormone"].values[-1]
+                   ,dp_iter["hormone"].values[0]
+                   ] + list(dp_iter["hormone"].values[:])
+        
+        hormone = [ i/1000 for i in hormone ]
+        
+        # now plot the dp data
+        the_axis.plot(timepoints
+                      ,hormone
+                      ,color=dp_line_color
+                      ,alpha=dp_line_alpha
+                      ,linewidth=4)          
 
     ylab = ""
 
@@ -269,6 +266,8 @@ def single_panel(
             ,title=title
             ,xlabel=xlab
             ,ylabel=ylab
+            ,loc_title=True
+            ,loc_title_pos=[-0.025,1.05]
             )
 
 
@@ -286,6 +285,17 @@ def make_query(the_dict):
 
     return(qry)
 
+def check_columns(
+        param_dict
+        ,data
+        ):
+    
+    colnames = set(data.columns.values)
+    param_colnames = set(param_dict.keys())
+    
+    if len(param_colnames - colnames) > 0:
+        raise Exception("Some column names in query do not exist in the dataset " + str(param_colnames - colnames))
+
 
 ######## general figure function ########
 
@@ -297,6 +307,7 @@ def stress_multipanel(
         ,sim_data
         ,dp_data
         ,filename
+        ,title_array=None
         ,min_time_iter = 0
         ,max_time_iter = 150
         ,newzero = 0
@@ -308,6 +319,7 @@ def stress_multipanel(
     rows = [1 for i in range(nrows)]
     cols = [1 for i in range(ncols)]
     
+    
     # use the dictionary to make a subset of the 
    
     # initialize multipanel fig
@@ -315,6 +327,8 @@ def stress_multipanel(
             panel_widths=cols
             ,panel_heights=rows
             ,filename=filename
+            ,width=10
+            ,wspace=0.2
             )
     
     try:
@@ -325,13 +339,28 @@ def stress_multipanel(
                 
                 # check whether current item is indeed a dictionary
                 assert(type(single_panel_dictionary) == type({}))
+                
+                check_columns(
+                    param_dict=single_panel_dictionary
+                    ,data=sim_data)
+                
+                check_columns(
+                    param_dict=single_panel_dictionary
+                    ,data=dp_data)
                         
                 # make a query string
                 query_string = make_query(single_panel_dictionary)
             
                 sim_subset = sim_data.query(query_string)
                 dp_subset = dp_data.query(query_string)
-            
+                
+                title = ""
+                
+                if title is not None:
+                    
+                    title= title_array[row_i][col_i]
+                    
+
                 single_panel(
                     data_dp=dp_subset
                     ,data_sims=sim_subset
@@ -342,13 +371,15 @@ def stress_multipanel(
                     ,max_time_iter=max_time_iter
                     ,newzero=newzero
                     ,xlim=xlim
+                    ,title=title
                     )
-    
+
                 # check whether there is iteration data for this
                 # data set
     
                 # if yes, plot it
     except:
+        print("something went wrong...")
         the_fig.close()
         raise
 
@@ -372,7 +403,7 @@ def stress_multipanel(
 
     # y axis label
     the_fig.fig.text(
-            x=0.0
+            x=0.05
             ,y = 0.52
             ,s="Hormone level, $z$"
             ,rotation=90

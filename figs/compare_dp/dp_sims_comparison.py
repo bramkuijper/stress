@@ -11,8 +11,6 @@ import stress_panels
 import pandas as pd
 import numpy as np
 
-def transform_hormone(row):
-    return(row["mean_hormone"])/1000
 
 
 dp_summary_file = "summary_dp.csv"
@@ -28,7 +26,7 @@ translate_cols = {
 
 # read in the dp data summary and strip column values of white space
 dp_data = pd.read_csv(filepath_or_buffer=dp_summary_file
-                      ,sep="\t").rename(str.strip,axis="columns")
+                      ,sep=";").rename(str.strip,axis="columns")
 
 # translate column values
 dp_data = dp_data.rename(
@@ -38,31 +36,83 @@ dp_data = dp_data.rename(
 dp_data["aP"] = 1.0
 dp_data["ad"] = 1.5
 
-
-
-dp_data["mean_hormone"] = dp_data.apply(transform_hormone,axis=1)
-
-print(dp_data)
+print(dp_data.columns.values)
 
 # read in simulation data
 sim_data = pd.read_csv(filepath_or_buffer=sims_summary_file
                        ,sep=";")
 
-# for testing purposes
+
 params_panel_1 = {
     "aP": 1
     ,"ad":1.5
     ,"sP2NP_1":0.19
     ,"sNP2P_1":0.01}
 
+params_panel_2 = {
+    "aP": 1
+    ,"ad":1.5
+    ,"sP2NP_1":0.95
+    ,"sNP2P_1":0.05}
 
 stress_panels.stress_multipanel(
-        param_array=np.array([[params_panel_1]])
+        param_array=np.array([[params_panel_1,params_panel_2]])
+        ,title_array=[[r"Autocorrelation, $\rho = 0.8","No autocorrelation"]]
         ,sim_data=sim_data
         ,dp_data=dp_data
-        ,filename="test_plot.pdf"
+        ,filename="dp_vs_sims_main.svg"
         ,min_time_iter = 80
-        ,max_time_iter = 175
+        ,max_time_iter =200 
         ,newzero = -100
-        ,xlim=[-25,75]
+        ,xlim=[-25,100]
         )
+
+params_panel_1 = {
+    "aP": 1
+    ,"ad":1.5
+    ,"sP2NP_1":0.09
+    ,"sNP2P_1":0.01}
+
+params_panel_2 = {
+    "aP": 1
+    ,"ad":1.5
+    ,"sP2NP_1":0.9
+    ,"sNP2P_1":0.1}
+
+stress_panels.stress_multipanel(
+        param_array=np.array([[params_panel_1,params_panel_2]])
+        ,title_array=[[r"Autocorrelation, $\rho = 0.9","No autocorrelation"]]
+        ,sim_data=sim_data
+        ,dp_data=dp_data
+        ,filename="dp_vs_sims_other.svg"
+        ,min_time_iter = 80
+        ,max_time_iter = 200
+        ,newzero = -100
+        ,xlim=[-25,100]
+        )
+
+
+params_panel_1 = {
+    "aP": 1
+    ,"ad":0.5
+    ,"sP2NP_1":0.09
+    ,"sNP2P_1":0.01}
+
+params_panel_2 = {
+    "aP": 1
+    ,"ad":0.5
+    ,"sP2NP_1":0.95
+    ,"sNP2P_1":0.05}
+
+stress_panels.stress_multipanel(
+        param_array=np.array([[params_panel_1,params_panel_2]])
+        ,title_array=[[r"Autocorrelation, $\rho = 0.9","No autocorrelation"]]
+        ,sim_data=sim_data
+        ,dp_data=dp_data
+        ,filename="bang_bang.svg"
+        ,min_time_iter = 80
+        ,max_time_iter = 200
+        ,newzero = -100
+        ,xlim=[-25,100]
+        )
+

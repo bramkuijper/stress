@@ -58,11 +58,11 @@ bool do_stats = 0;
 int generation = 0;
 
 // mutation rate parameters
-double mu_feedback = 0.0;
+double mu_clearance = 0.0;
 double mu_stress_influx = 0.0;
 double mu_influx = 0.0;
 double mu_hstart = 0.0;
-double sdmu_feedback = 0.0;
+double sdmu_clearance = 0.0;
 double sdmu_stress_influx = 0.0;
 double sdmu_influx = 0.0;
 double sdmu_hstart = 0.0;
@@ -83,12 +83,12 @@ double p_att = 1.0;
 // environment being P
 double pr_envt_is_P = 0.0;
 
-// the allelic values of feedback, stress_influx, influx and hstart are
+// the allelic values of clearance, stress_influx, influx and hstart are
 // restricted to the unit interval; for this reason, zmax and dmax should be
 // equal to 1.0
 
 // initial values for the evolving traits
-double init_feedback = 0.0;
+double init_clearance = 0.0;
 double init_stress_influx = 0.0;
 double init_influx = 0.0;
 double init_hstart = 0.0;
@@ -106,8 +106,11 @@ double ad = 1.0;
 double aP = 1.0;
 double dmax = 1.0;
 double zmax = 1.0;
+double min_clearance = 1.0;
 double r = 1.0;
 double u = 1.0;
+
+
 
 // parameters for input/output of pop to text file; they are read from the
 // command line
@@ -129,7 +132,7 @@ struct Individual
 {
     // diploid loci specifying the evolving traits
     // self-dependent increase/decrease in hormone
-    double feedback[2];
+    double clearance[2];
     // influx of new hormone when encountering stress
     double stress_influx[2];
     // stress independent hormone influx
@@ -159,12 +162,12 @@ std::vector<double> fecundity(Npop);
 // initialize simulations from command line arguments
 void init_arguments(int argc, char *argv[])
 {
-    mu_feedback  = atof(argv[1]);
+    mu_clearance = atof(argv[1]);
     mu_stress_influx  = atof(argv[2]);
     mu_influx  = atof(argv[3]);
     mu_hstart  = atof(argv[4]);
 
-    sdmu_feedback = atof(argv[5]);
+    sdmu_clearance = atof(argv[5]);
     sdmu_stress_influx = atof(argv[6]);
     sdmu_influx = atof(argv[7]);
     sdmu_hstart = atof(argv[8]);
@@ -172,7 +175,7 @@ void init_arguments(int argc, char *argv[])
     s_P_2_NP  = atof(argv[9]);
     s_NP_2_P  = atof(argv[10]);
 
-    init_feedback  = atof(argv[11]);
+    init_clearance = atof(argv[11]);
     init_stress_influx  = atof(argv[12]);
     init_influx  = atof(argv[13]);
     init_hstart  = atof(argv[14]);
@@ -185,15 +188,16 @@ void init_arguments(int argc, char *argv[])
     aP  = atof(argv[19]);
     dmax  = atof(argv[20]);
     zmax  = atof(argv[21]);
+    min_clearance = atof(argv[22]);
 
-    r = atof(argv[22]);
-    u = atof(argv[23]);
+    r = atof(argv[23]);
+    u = atof(argv[24]);
 
-    mort_background = atof(argv[24]);
-    p_att = atof(argv[25]);
-    NumGen = atoi(argv[26]);
-    ioind = atoi(argv[27]);
-    base_name = argv[28];
+    mort_background = atof(argv[25]);
+    p_att = atof(argv[26]);
+    NumGen = atoi(argv[27]);
+    ioind = atoi(argv[28]);
+    base_name = argv[29];
     // equilibrium probabilities
     pr_envt_is_P = s_NP_2_P / (s_NP_2_P + s_P_2_NP);
 }
@@ -235,13 +239,13 @@ void write_parameters(ofstream &DataFile)
 		<< endl
 		<< "seed;" << seed << ";"<< endl
 		<< "Npop;" << Npop << ";"<< endl
-		<< "mu_feedback;" << mu_feedback << ";"<< endl
+		<< "mu_clearance;" << mu_clearance << ";"<< endl
 		<< "mu_stress_influx;" << mu_stress_influx << ";"<< endl
         << "mu_influx;" << mu_influx << ";"<< endl
 		<< "mu_hstart;" << mu_hstart << ";"<< endl
 		<< "sP2NP_1;" << s_P_2_NP << ";"<< endl
 		<< "sNP2P_1;" << s_NP_2_P << ";"<< endl
-		<< "init_feedback;" << init_feedback << ";"<< endl
+		<< "init_clearance;" << init_clearance << ";"<< endl
 		<< "init_stress_influx;" << init_stress_influx << ";"<< endl
         << "init_influx;" << init_influx << ";"<< endl
 		<< "init_hstart;" << init_hstart << ";"<< endl
@@ -253,6 +257,7 @@ void write_parameters(ofstream &DataFile)
 		<< "mort_background;" << mort_background << ";"<< endl
 		<< "dmax;" << dmax << ";"<< endl
 		<< "zmax;" << zmax << ";"<< endl
+		<< "min_clearance;" << min_clearance << ";"<< endl
 		<< "r;" << r << ";"<< endl
         << "u;" << u << ";"<< endl
 		<< "p_att;" << p_att << ";"<< endl
@@ -276,7 +281,7 @@ void init_population()
         // set alleles
         for (int allele_i = 0; allele_i < 2; ++allele_i)
         {
-            newInd.feedback[allele_i] = init_feedback;
+            newInd.clearance[allele_i] = init_clearance;
             newInd.stress_influx[allele_i] = init_stress_influx;
             newInd.influx[allele_i] = init_influx;
             newInd.hstart[allele_i] = init_hstart;
@@ -317,8 +322,8 @@ void create_offspring(
 {
     // assume allele 0 is from maternal gamete and allele 1 from paternal
     // gamete; the gametes are formed using free recombination of parental loci
-    double mat_feedback = mother.feedback[random_allele(rng_r)];
-    double pat_feedback = father.feedback[random_allele(rng_r)];
+    double mat_clearance = mother.clearance[random_allele(rng_r)];
+    double pat_clearance = father.clearance[random_allele(rng_r)];
     double mat_stress_influx = mother.stress_influx[random_allele(rng_r)];
     double pat_stress_influx = father.stress_influx[random_allele(rng_r)];
     double mat_influx = mother.influx[random_allele(rng_r)];
@@ -326,8 +331,8 @@ void create_offspring(
     double mat_hstart = mother.hstart[random_allele(rng_r)];
     double pat_hstart = father.hstart[random_allele(rng_r)];
 
-    kid.feedback[0] = mat_feedback;
-    kid.feedback[1] = pat_feedback;
+    kid.clearance[0] = mat_clearance;
+    kid.clearance[1] = pat_clearance;
     kid.stress_influx[0] = mat_stress_influx;
     kid.stress_influx[1] = pat_stress_influx;
     kid.influx[0] = mat_influx;
@@ -340,10 +345,10 @@ void create_offspring(
     for (int allele_i = 0; allele_i < 2; ++allele_i)
     {
         mutate(
-                kid.feedback[allele_i],
-                mu_feedback,
-                sdmu_feedback);
-        clamp(kid.feedback[allele_i], 0.0, 1.0);
+                kid.clearance[allele_i],
+                mu_clearance,
+                sdmu_clearance);
+        clamp(kid.clearance[allele_i], min_clearance, 1.0);
 
         mutate(
                 kid.stress_influx[allele_i],
@@ -434,13 +439,13 @@ void survive(ofstream &datafile)
     {
         if (pop[ind_i].alive) { // all individuals ought to be alive here
             // update hormone level from "background" influx and outflux
-            double feedback = 0.5*(pop[ind_i].feedback[0] +
-                              pop[ind_i].feedback[1]);
+            double clearance = 0.5*(pop[ind_i].clearance[0] +
+                              pop[ind_i].clearance[1]);
             double stress_influx = 0.5*(pop[ind_i].stress_influx[0] +
                                    pop[ind_i].stress_influx[1]);
             double influx = 0.5*(pop[ind_i].influx[0] +
                             pop[ind_i].influx[1]);
-            pop[ind_i].hormone = (1.0 - feedback)*pop[ind_i].hormone + influx;
+            pop[ind_i].hormone = (1.0 - clearance)*pop[ind_i].hormone + influx;
             double p_cue = pop[ind_i].envt_is_P ? cue_P : cue_NP;
             if (uniform(rng_r) < p_cue) {
                 // individual gets predator cue
@@ -536,8 +541,8 @@ void reproduce_check(ofstream &datafile)
 // write summary statistics
 void write_data(ofstream &DataFile)
 {
-    double mean_feedback = 0;
-    double ss_feedback = 0;
+    double mean_clearance = 0;
+    double ss_clearance = 0;
     double mean_stress_influx = 0;
     double ss_stress_influx = 0;
     double mean_influx = 0;
@@ -554,11 +559,11 @@ void write_data(ofstream &DataFile)
         if (pop[ind_i].alive) { // all should be alive at this point
             // Note from Olle: phenotypes are assumed to be mean of allelic
             // values (often sum of allelic values are assumed)
-            // feedback
-            double feedback = 0.5*(pop[ind_i].feedback[0] +
-                              pop[ind_i].feedback[1]);
-            mean_feedback += feedback;
-            ss_feedback += feedback * feedback;
+            // clearance
+            double clearance = 0.5*(pop[ind_i].clearance[0] +
+                              pop[ind_i].clearance[1]);
+            mean_clearance += clearance;
+            ss_clearance += clearance * clearance;
             // stress_influx
             double stress_influx = 0.5*(pop[ind_i].stress_influx[0] +
                                    pop[ind_i].stress_influx[1]);
@@ -569,7 +574,7 @@ void write_data(ofstream &DataFile)
                             pop[ind_i].influx[1]);
             mean_influx += influx;
             ss_influx += influx * influx;
-            // feedback
+            // hormone
             double hormone = pop[ind_i].hormone;
             mean_hormone += hormone;
             ss_hormone += hormone * hormone;
@@ -579,13 +584,13 @@ void write_data(ofstream &DataFile)
             ss_damage += damage * damage;
         }
     }
-    mean_feedback /= Npop;
+    mean_clearance /= Npop;
     mean_stress_influx /= Npop;
     mean_influx /= Npop;
     mean_hormone /= Npop;
     mean_damage /= Npop;
 
-    double sd_feedback = sqrt(ss_feedback / Npop - pow(mean_feedback,2.0));
+    double sd_clearance = sqrt(ss_clearance / Npop - pow(mean_clearance,2.0));
     double sd_stress_influx = sqrt(ss_stress_influx / Npop -
                                    pow(mean_stress_influx,2.0));
     double sd_influx = sqrt(ss_influx / Npop - pow(mean_influx,2.0));
@@ -594,12 +599,12 @@ void write_data(ofstream &DataFile)
 
     DataFile << generation << ";"
         << freq_P << ";"
-        << mean_feedback << ";"
+        << mean_clearance << ";"
         << mean_stress_influx << ";"
         << mean_influx << ";"
         << mean_hormone << ";"
         << mean_damage << ";"
-        << sd_feedback << ";"
+        << sd_clearance << ";"
         << sd_stress_influx << ";"
         << sd_influx << ";"
         << sd_hormone << ";"
@@ -616,12 +621,12 @@ void write_data_headers(ofstream &DataFile)
 {
     DataFile << "generation;"
         << "freq_P" << ";"
-        << "mean_feedback" << ";"
+        << "mean_clearance " << ";"
         << "mean_stress_influx" << ";"
         << "mean_influx" << ";"
         << "mean_hormone" << ";"
         << "mean_damage" << ";"
-        << "sd_feedback" << ";"
+        << "sd_clearance" << ";"
         << "sd_stress_influx" << ";"
         << "sd_influx" << ";"
         << "sd_hormone" << ";"
@@ -639,7 +644,7 @@ void write_data_headers(ofstream &DataFile)
 void write_simple_iter(ofstream &IterFile)
 {
     // number of individuals
-    int nrep = 10;
+    int nrep = 20;
     int tmax = 500;
     int tstress = 100;
 
@@ -659,15 +664,15 @@ void write_simple_iter(ofstream &IterFile)
     {
         ind = pop[rint(rng_r)];
 
-        // get feedback, stress_influx, influx and hstart from genotype
-        double feedback = 0.5*(ind.feedback[0] + ind.feedback[1]);
+        // get clearance, stress_influx, influx and hstart from genotype
+        double clearance = 0.5*(ind.clearance[0] + ind.clearance[1]);
         double stress_influx = 0.5*(ind.stress_influx[0] +
                                ind.stress_influx[1]);
         double influx = 0.5*(ind.influx[0] + ind.influx[1]);
         double hstart = 0.5*(ind.hstart[0] + ind.hstart[1]);
 
         // hormone baseline level
-        hormone = (feedback > 0) ? influx/feedback : 1.0;
+        hormone = (clearance > 0) ? influx/clearance : 1.0;
         hormone = hstart;
         clamp(hormone, 0.0, zmax);
         hormone_tplus1 = 0.0;
@@ -677,7 +682,7 @@ void write_simple_iter(ofstream &IterFile)
         // iterate the stress response for this individual
         for (int timestep = 0; timestep < tmax; ++timestep)
         {
-            hormone_tplus1 = (1.0 - feedback)*hormone + influx;
+            hormone_tplus1 = (1.0 - clearance)*hormone + influx;
             if (timestep == tstress)
             {
                 hormone_tplus1 += stress_influx;
@@ -704,22 +709,22 @@ void read_pop_from_file(string infilename)
         // count individuals
         int ind_i = 0;
         Individual indi;
-        double feedback; // dummy variable
+        double clearance; // dummy variable
         double stress_influx; // dummy variable
         double influx; // dummy variable
         double hstart; // dummy variable
         int envtP = 0;
         int alv = 0;
         while (infile && ind_i < Npop) {
-            infile >> indi.feedback[0];
-            infile >> indi.feedback[1];
+            infile >> indi.clearance[0];
+            infile >> indi.clearance[1];
             infile >> indi.stress_influx[0];
             infile >> indi.stress_influx[1];
             infile >> indi.influx[0];
             infile >> indi.influx[1];
             infile >> indi.hstart[0];
             infile >> indi.hstart[1];
-            infile >> feedback;
+            infile >> clearance;
             infile >> stress_influx;
             infile >> influx;
             infile >> hstart;
@@ -753,11 +758,11 @@ void read_pop_from_file(string infilename)
 void write_pop_to_file(ofstream &PopFile)
 {
     // first write headers
-    PopFile << "feedback1" << "\t" << "feedback2" << "\t"
+    PopFile << "clearance1" << "\t" << "clearance2" << "\t"
         << "stress_influx1" << "\t" << "stress_influx2" << "\t"
         << "influx1" << "\t" << "influx2" << "\t"
         << "hstart1" << "\t" << "hstart2" << "\t"
-        << "feedback" << "\t"
+        << "clearance" << "\t"
         << "stress_influx" << "\t"
         << "influx" << "\t"
         << "hstart" << "\t"
@@ -768,23 +773,23 @@ void write_pop_to_file(ofstream &PopFile)
     // then write population
     for (int ind_i = 0; ind_i < Npop; ++ind_i)
     {
-        double feedback = 0.5*(pop[ind_i].feedback[0] +
-                          pop[ind_i].feedback[1]);
+        double clearance = 0.5*(pop[ind_i].clearance[0] +
+                          pop[ind_i].clearance[1]);
         double stress_influx = 0.5*(pop[ind_i].stress_influx[0] +
                                pop[ind_i].stress_influx[1]);
         double influx = 0.5*(pop[ind_i].influx[0] +
                         pop[ind_i].influx[1]);
         double hstart = 0.5*(pop[ind_i].hstart[0] +
                         pop[ind_i].hstart[1]);
-        PopFile << pop[ind_i].feedback[0] << "\t"
-                << pop[ind_i].feedback[1] << "\t"
+        PopFile << pop[ind_i].clearance[0] << "\t"
+                << pop[ind_i].clearance[1] << "\t"
                 << pop[ind_i].stress_influx[0] << "\t"
                 << pop[ind_i].stress_influx[1] << "\t"
                 << pop[ind_i].influx[0] << "\t"
                 << pop[ind_i].influx[1] << "\t"
                 << pop[ind_i].hstart[0] << "\t"
                 << pop[ind_i].hstart[1] << "\t"
-                << feedback << "\t"
+                << clearance << "\t"
                 << stress_influx << "\t"
                 << influx << "\t"
                 << hstart << "\t"

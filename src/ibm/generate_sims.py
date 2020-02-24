@@ -22,8 +22,8 @@ exe = "./xstress"
 
 ###### mutation rates ######
 
-# mutation rate for the feedback trait
-mu_feedback = [0.0005]
+# mutation rate for the clearance trait
+mu_clearance = [0.0005]
 
 # combination of mutation rates for 
 # 1. the stress influx and 
@@ -47,8 +47,19 @@ sdmu = [ 0.10]
 
 # switch rates from predator to non-predator environments
 # and vice versa
-s_P2NP = [ 0.19 ]
-s_NP2P = [ 0.01 ]
+s_P2NP = [ 0.9 ]
+s_NP2P = [ 0.1 ]
+
+# all combinations of switch rats
+# [s_P2NP, s_NP2P]
+s_combinations = [
+        [0.9, 0.1]
+        ,[0.95,0.05]
+        ,[0.19, 0.01]
+        ,[0.09, 0.01]
+        ]
+
+
 
 # probability of receiving a cue in the predator environment
 cue_P = [ 0.0 ]
@@ -68,6 +79,7 @@ s0 = 0.0
 
 dmax = 1.0
 zmax = 1.0
+min_clearance = [0.01, 0.1]
 
 
 # rate at which damage decays over time
@@ -78,18 +90,18 @@ damage_decay = [ 1.0 ]
 damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
-nrep = 3
+nrep = 16
 
 # background mortality
 mort_background = 0.002
 
 # number of timesteps
-maxtime = 20 
+maxtime = 5e05
 
 
 #### initial values for all traits ####
 
-init_feedback = [0.1]
+init_clearance = [0.1]
 init_stress_influx = [0.4]
 init_influx = [0.05]
 init_hstart = [0.5]
@@ -97,7 +109,7 @@ init_hstart = [0.5]
 
 
 ##### determine whether we should run jobs in background #####
-background_jobs = True
+background_jobs = False 
 
 host = st.gethostname()
 
@@ -120,7 +132,7 @@ ctr = 0
 
 # make all permutations of parameter combinations
 for rep_i in range(0,nrep):
-    for mu_feedback_i in mu_feedback:
+    for mu_clearance_i in mu_clearance:
         for stress_cue_influx_i in mu_stress_cue_influx_combis:
     
             mu_stress_influx_i = stress_cue_influx_i[0]
@@ -132,20 +144,22 @@ for rep_i in range(0,nrep):
 
                     for sdmu_i in sdmu:
 
-                        for s_P2NP_i in s_P2NP:
-                            for s_NP2P_i in s_NP2P:
+                        for s_combi_i in s_combinations:
+                            s_P2NP_i = s_combi_i[0]
+                            s_NP2P_i = s_combi_i[1]
 
-                                for cue_P_i in cue_P:
-                                    for cue_NP_i in cue_NP:
-                                        for p_att_i in p_att:
+                            for cue_P_i in cue_P:
+                                for cue_NP_i in cue_NP:
+                                    for p_att_i in p_att:
 
-                                            for ad_i in ad:
-                                                for aP_i in aP:
+                                        for ad_i in ad:
+                                            for aP_i in aP:
 
+                                                for min_clearance_i in min_clearance:
                                                     for r_i in damage_decay:
                                                         for u_i in damage_due_to_hormone:
 
-                                                            for init_feedback_i in init_feedback:
+                                                            for init_clearance_i in init_clearance:
                                                                 for init_stress_influx_i in init_stress_influx:
                                                                     for init_influx_i in init_influx:
                                                                         for init_hstart_i in init_hstart:
@@ -156,7 +170,7 @@ for rep_i in range(0,nrep):
                                                                             base_name_i = base_name + "_"  + str(ctr)
 
                                                                             print(exe + " " 
-                                                                                  + str(mu_feedback_i) + " " 
+                                                                                  + str(mu_clearance_i) + " " 
                                                                                   + str(mu_stress_influx_i) + " " 
                                                                                   + str(mu_influx_i) + " " 
                                                                                   + str(mu_hstart_i) + " " 
@@ -169,7 +183,7 @@ for rep_i in range(0,nrep):
                                                                                   + str(s_P2NP_i) + " " 
                                                                                   + str(s_NP2P_i) + " " 
                                                                             
-                                                                                  + str(init_feedback_i) + " " 
+                                                                                  + str(init_clearance_i) + " " 
                                                                                   + str(init_stress_influx_i) + " " 
                                                                                   + str(init_influx_i) + " " 
                                                                                   + str(init_hstart_i) + " " 
@@ -183,6 +197,7 @@ for rep_i in range(0,nrep):
                                                                             
                                                                                   + str(dmax) + " " 
                                                                                   + str(zmax) + " " 
+                                                                                  + str(min_clearance_i) + " " 
                                                                             
                                                                                   + str(r_i) + " " 
                                                                                   + str(u_i) + " " 

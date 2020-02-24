@@ -49,7 +49,6 @@ class SummarizeSims:
         self.recursive = recursive
         self.sep = sep
         
-
         self.full_data = None
         
         for root, dirname, files in os.walk(self.path):
@@ -59,15 +58,36 @@ class SummarizeSims:
 #                    print(os.path.join(root,file))
                     self.analyze_file(filename=os.path.join(root,file))
 
-        self.output_full_data()
+        if self.full_data is not None:
+            
+            self.output_postprocess()
+            self.output_full_data()
+
+    def output_postprocess(self):
+        """
+        Post collection data cleaning: e.g., strip whitespace
+        from column names
+
+        Returns
+        -------
+        None.
+
+        """
+        self.full_data.rename(str.strip
+                       ,inplace=True
+                       ,axis="columns")
+        
+        
 
     def output_full_data(self):
+        
+        
 
         # write the data to stdout
         if self.full_data.shape[0] > 0:
             print(self.full_data.to_csv(
                     path_or_buf=None
-                    ,sep=self.sep
+                    ,sep=";"
                     ,index=False))
 
     # analyze parameters at the end of the file
@@ -108,7 +128,7 @@ class SummarizeSims:
                 ,skiprows=linenumber_start
                 ,nrows=linenumber_end
                 ,sep=self.sep)
-
+    
         return(the_data.iloc[[-1]])
     
     def analyze_parameters_new(
@@ -119,7 +139,9 @@ class SummarizeSims:
 
         assert(type(linenumber_start) == type(30))
         assert(type(filename) == type("adf"))
-        assert(linenumber_end > linenumber_start)
+        
+        if linenumber_end != None:
+            assert(linenumber_end > linenumber_start)
 
         # read in the parameter data as if it were
         # a csv file
@@ -127,7 +149,7 @@ class SummarizeSims:
                 filepath_or_buffer=filename
                 ,sep=self.sep
                 ,skiprows=linenumber_start
-                ,nrows=linenumber_end - 1
+                ,nrows=linenumber_end
                 ,header=None
                 ,dtype=str
                 ,usecols=[0,1]).T
@@ -160,12 +182,13 @@ class SummarizeSims:
             linelist = infile.readlines()
 
             # make a reverse range and loop through lines
-            linerange = range(len(linelist),0,-1)
+            linerange = range(len(linelist)-1,0,-1)
 
             for line_idx in linerange:
                 if re.search(r"^\d",linelist[line_idx]) is not None:
                     return(line_idx)
-
+            else:
+                raise ValueError("Cannot find any data in file " + filename)
 
     
     def analyze_file(self,filename, sep=";"):
@@ -222,41 +245,43 @@ class SummarizeSims:
                     filename=filename
                     ,linenumber_start=non_data_lines_start[-1]
                     )
-
-            # combine both parameters and data
-            data_params_combined = pd.concat(
-                    [parameters.reset_index(drop=True)
-                        ,data.reset_index(drop=True)]
-                    ,axis=1)
-            
-            # add current filename
-            data_params_combined["file"] = filename
-            
-
-            if self.full_data is None:
-                self.full_data = data_params_combined
-            else:
-                self.full_data = self.full_data.append(
-                        other=data_params_combined
-                        ,ignore_index=True
-                        ,sort=False
-                        )
+          
 
         else: # parameters at the end apparently
 
             # get a list of all non-data-lines at the end of the file
-            last_data_line = self.last_data_line(filename)
-
+            last_data_line = self.find_last_data_line(filename=filename)
+            
             # collect the data
             data = self.analyze_data(
                     linenumber_start=non_data_lines_start[-1]
-                    ,linenumber_end=last_data_line - 1
+                    ,linenumber_end=last_data_line
                     ,filename=filename)
-               
+            
             parameters = self.analyze_parameters_new(
                     linenumber_start=last_data_line + 1
                     ,linenumber_end=None
                     ,filename = filename)
+            
+                   
+        # combine both parameters and data
+        data_params_combined = pd.concat(
+                [parameters.reset_index(drop=True)
+                    ,data.reset_index(drop=True)]
+                ,axis=1)
+            
+        # add current filename
+        data_params_combined["file"] = filename
+        
+        if self.full_data is None:
+            self.full_data = data_params_combined
+        else:
+            self.full_data = self.full_data.append(
+                    other=data_params_combined
+                    ,ignore_index=True
+                    ,sort=False
+                    )
+
 
 #        # indicator variable whether we are at first line
 #        # of the file to be read
