@@ -58,8 +58,8 @@ sdmu = [ 0.10]
 #s_P2NP = [[0.01,0.02],[ 0.04,0.08], [ 0.1,0.2]]
 #s_NP2P = [[0.005,0.01], [ 0.02,0.04], [ 0.05, 0.1]]
 
-s_P2NP = [ 0.1, 0.5, 0.9 ]
-s_NP2P = [ 0.1, 0.5, 0.9 ]
+s_P2NP = [ 0.1 ]
+s_NP2P = [ 0.1 ]
 
 #cue_P = [ 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ]
 #cue_NP = [ 0.0, 0.2, 0.3, 0.4 ]
@@ -67,11 +67,11 @@ s_NP2P = [ 0.1, 0.5, 0.9 ]
 cue_P = [ 0.0 ]
 cue_NP = [ 0.0 ]
 
-# power of the hormone level survival function
-aP = [ 1.0 ]
-
 # power of the damage cost function
-ad = [ 0.5, 0.9, 1.0, 1.5 ]
+ad = [ 1.0 ]
+
+# power of the hormone level survival function
+aP = [ 1.5 ]
 
 damage_decay = [ 1.0 ]
 damage_due_to_hormone = [ 1.0 ]
@@ -81,15 +81,15 @@ nrep = 3
 
 ctr = 0
 
-init_lfeedback = [-1.0]
-init_lstress_influx = [-4.0]
+init_lfeedback =np.linspace(-4.0,4.0,5) 
+init_lstress_influx = np.linspace(-4.0,4.0,5)
 init_lstress_baseline_influx = [-4.0]
-init_lcue_influx = init_lstress_influx
-init_linflux = [-1.5]
+init_lcue_influx = [-4.0]
+init_linflux = np.linspace(-4.0,4.0,5)
 
 # attack probability 
 p_att = [ 0.5 ]
-pleiotropy = [ 0.0, 0.8 ]
+pleiotropy = [ 0.0 ]
 maxtime = "200000"
 
 # attack probability
@@ -136,74 +136,75 @@ for rep_i in range(0,nrep):
                                                         for init_lfeedback_i in init_lfeedback:
                                                             for init_lstress_influx_i in init_lstress_influx:
                                                                 for init_lcue_influx_i in init_lcue_influx:
-                                                                    for init_lstress_baseline_influx_i in init_lstress_baseline_influx:
-                                                                        for pleiotropy_i in pleiotropy:
+                                                                    for init_linflux_i in init_linflux:
+                                                                        for init_lstress_baseline_influx_i in init_lstress_baseline_influx:
+                                                                            for pleiotropy_i in pleiotropy:
 
-                                                                            ctr += 1
-                                                                            print("echo " + str(ctr))
+                                                                                ctr += 1
+                                                                                print("echo " + str(ctr))
 
-                                                                            base_name_i = base_name + "_"  + str(ctr)
+                                                                                base_name_i = base_name + "_"  + str(ctr)
 
-                                                                            # optimal hormone object
-                                                                            opt_h_obj = OptHorm(
-                                                                                    ad=ad_i
-                                                                                    ,mu_bg=mort_background
-                                                                                    ,sP2NP=s_P2NP_i
-                                                                                    ,sNP2P=s_NP2P_i
-                                                                                    ,p_att=p_att_i
-                                                                                    ,ap=aP_i)
+                                                                                # optimal hormone object
+                                                                                opt_h_obj = OptHorm(
+                                                                                        ad=ad_i
+                                                                                        ,mu_bg=mort_background
+                                                                                        ,sP2NP=s_P2NP_i
+                                                                                        ,sNP2P=s_NP2P_i
+                                                                                        ,p_att=p_att_i
+                                                                                        ,ap=aP_i)
 
-#                                                                                opt_h_obj.print_data()
+    #                                                                                opt_h_obj.print_data()
 
-                                                                            sol = optimize.minimize_scalar(
-                                                                                    fun=opt_h_obj.lrs
-                                                                                    ,bounds=[1*10**(-5),1.0 - 1*10**(-5)]
-                                                                                    ,method="Bounded"
-                                                                                    )
+                                                                                sol = optimize.minimize_scalar(
+                                                                                        fun=opt_h_obj.lrs
+                                                                                        ,bounds=[1*10**(-5),1.0 - 1*10**(-5)]
+                                                                                        ,method="Bounded"
+                                                                                        )
 
-                                                                            # optimal hormone level for 
-                                                                            # this parameter combination
-                                                                            h_opt = sol["x"]
+                                                                                # optimal hormone level for 
+                                                                                # this parameter combination
+                                                                                h_opt = sol["x"]
 
-                                                                            # now holding lfeedback value fixed
-                                                                            # calculate value of influx
-                                                                            influx = h_opt * logistic(init_lfeedback_i)
+                                                                                # now holding lfeedback value fixed
+                                                                                # calculate value of influx
+                                                                                influx = h_opt * logistic(init_lfeedback_i)
 
-                                                                            # transform back to original logistic scale
-                                                                            init_linflux_i = round(logit(influx),2)
+                                                                                # transform back to original logistic scale
+                                                                                #init_linflux_i = round(logit(influx),2)
 
-                                                                            print(exe + " " 
-                                                                                    + str(mu_feedback_i) + " " 
-                                                                                    + str(mu_cue_influx_i) + " " 
+                                                                                print(exe + " " 
+                                                                                        + str(mu_feedback_i) + " " 
+                                                                                        + str(mu_cue_influx_i) + " " 
 
-                                                                                    + str(mu_stress_influx_i) + " " 
-                                                                                    + str(mu_influx_i) + " " 
+                                                                                        + str(mu_stress_influx_i) + " " 
+                                                                                        + str(mu_influx_i) + " " 
 
-                                                                                    + str(sdmu_i) + " " 
-                                                                                    + str(s_P2NP_i) + " " 
+                                                                                        + str(sdmu_i) + " " 
+                                                                                        + str(s_P2NP_i) + " " 
 
-                                                                                    + str(s_NP2P_i) + " " 
-                                                                                    + str(init_lfeedback_i) + " " 
-                                                                                    + str(init_lcue_influx_i) + " " 
-                                                                                    + str(init_lstress_influx_i) + " " 
-                                                                                    + str(init_lstress_baseline_influx_i) + " " 
-                                                                                    + str(init_linflux_i) + " " 
-                                                                                    + str(cue_P_i) + " " 
+                                                                                        + str(s_NP2P_i) + " " 
+                                                                                        + str(init_lfeedback_i) + " " 
+                                                                                        + str(init_lcue_influx_i) + " " 
+                                                                                        + str(init_lstress_influx_i) + " " 
+                                                                                        + str(init_lstress_baseline_influx_i) + " " 
+                                                                                        + str(init_linflux_i) + " " 
+                                                                                        + str(cue_P_i) + " " 
 
-                                                                                    + str(cue_NP_i) + " " 
-                                                                                    + str(ad_i) + " " 
+                                                                                        + str(cue_NP_i) + " " 
+                                                                                        + str(ad_i) + " " 
 
-                                                                                    + str(aP_i) + " " 
-                                                                                    + str(r_i) + " " 
+                                                                                        + str(aP_i) + " " 
+                                                                                        + str(r_i) + " " 
 
-                                                                                    + str(u_i) + " " 
-                                                                                    + str(mort_background) + " " 
+                                                                                        + str(u_i) + " " 
+                                                                                        + str(mort_background) + " " 
 
-                                                                                    + str(p_att_i) + " " 
-                                                                                    + str(pleiotropy_i) + " " 
-                                                                                    + str(maxtime) + " "
-                                                                                    + str(0) + " " 
+                                                                                        + str(p_att_i) + " " 
+                                                                                        + str(pleiotropy_i) + " " 
+                                                                                        + str(maxtime) + " "
+                                                                                        + str(0) + " " 
 
-                                                                                    + base_name_i + " "
-                                                                                    + str(background_str)
-                                                                                    )
+                                                                                        + base_name_i + " "
+                                                                                        + str(background_str)
+                                                                                        )
