@@ -45,20 +45,31 @@ sdmu = [ 0.10]
 ###### environment ######
 
 
-# switch rates from predator to non-predator environments
-# and vice versa
 s_P2NP = [ 0.9 ]
 s_NP2P = [ 0.1 ]
 
-# all combinations of switch rats
-# [s_P2NP, s_NP2P]
-s_combinations = [
-        [0.9, 0.1]
-        ,[0.95,0.05]
-        ,[0.19, 0.01]
-        ,[0.09, 0.01]
-        ]
+# switch rates as a combination of autocorrelation and risk
+# autocorr (rho = 1 - (sP2NP + sNP2P)
+autocorr = np.arange(0,1,0.1)
 
+# risk (r) = sNP2P/(sP2NP + sNP2P)
+risk = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5 ]
+
+# hence:
+# s_P2NP = (1-r) ( 1 - rho)
+# s_NP2P = r ( 1 - rho)
+
+
+s_combinations = []
+
+for rho_i in autocorr:
+    for r_i in risk:
+        s_P2NP = (1 - r_i) * (1 - rho_i)
+        s_NP2P = r_i * (1 - rho_i)
+        s_combinations.append([round(s_P2NP,3), round(s_NP2P,3)])
+
+#[print([s[0],s[1],s[1]/(s[0] + s[1]),1 - s[0] - s[1]]) for s in s_combinations]
+#sys.exit(1)
 
 
 # probability of receiving a cue in the predator environment
@@ -79,7 +90,7 @@ s0 = 0.0
 
 dmax = 1.0
 zmax = 1.0
-min_clearance = [0.01, 0.1]
+min_clearance = [0.01]
 
 
 # rate at which damage decays over time
@@ -96,7 +107,7 @@ nrep = 16
 mort_background = 0.002
 
 # number of timesteps
-maxtime = 5e05
+maxtime = 4e06
 
 
 #### initial values for all traits ####
