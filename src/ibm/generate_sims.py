@@ -29,7 +29,7 @@ mu_clearance = [0.0005]
 # 1. the stress influx and 
 # 2. the stress influx slope and 
 # 3. the cue influx
-mu_stress_cue_influx_combis = [[0.0005,0.0005, 0.0]]
+mu_stress_cue_influx_combis = [[0.0005,0.0, 0.0]]
 
 # mutation rate of the baseline influx
 mu_influx = [0.0005]
