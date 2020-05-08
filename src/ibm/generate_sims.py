@@ -16,7 +16,6 @@ def logit(x):
     return(math.log(x/(1.0 - x)))
 
 
-
 exe = "./stress.exe"
 
 
@@ -28,8 +27,9 @@ mu_clearance = [0.0005]
 # combination of mutation rates for 
 # 1. the stress influx and 
 # 2. the stress influx slope and 
+# 3. the stress influx slope^2 and 
 # 3. the cue influx
-mu_stress_cue_influx_combis = [[0.0005,0.0005, 0.0]]
+mu_stress_cue_influx_combis = [[0.0005,0.0005,0.0005, 0.0]]
 
 # mutation rate of the baseline influx
 mu_influx = [0.0005]
@@ -95,13 +95,14 @@ s0 = 0.0
 dmax = 1.0
 zmax = 1.0
 min_clearance = [0.01]
+opt_baseline = 0.3
 
 
-# rate at which damage decays over time
+# rate at which damage is cleared over time
 # 1.0: full decay, i.e
 # no damage lingering after current timestep
 # 0.0: no decay whatsoever
-damage_decay = [ 1.0 ]
+damage_clearance = [ 1.0 ]
 damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
@@ -112,7 +113,6 @@ mort_background = 0.002
 
 # number of timesteps
 maxtime = 4e06
-#maxtime = 3
 # number of timesteps stress influx lasts
 tmax_stress_influx = [ 5 ]
 
@@ -155,7 +155,8 @@ for rep_i in range(0,nrep):
     
             mu_stress_influx_i = stress_cue_influx_i[0]
             mu_stress_influx_slope_i = stress_cue_influx_i[1]
-            mu_cue_influx_i = stress_cue_influx_i[2]
+            mu_stress_influx_slope2_i = stress_cue_influx_i[2]
+            mu_cue_influx_i = stress_cue_influx_i[3]
 
             for mu_influx_i in mu_influx:
                 
@@ -173,7 +174,7 @@ for rep_i in range(0,nrep):
                                         for aP_i in aP:
 
                                             for min_clearance_i in min_clearance:
-                                                for r_i in damage_decay:
+                                                for damage_clearance_i in damage_clearance:
                                                     for u_i in damage_due_to_hormone:
 
                                                         for init_clearance_i in init_clearance:
@@ -192,9 +193,11 @@ for rep_i in range(0,nrep):
                                                                                       + str(mu_clearance_i) + " " 
                                                                                       + str(mu_stress_influx_i) + " " 
                                                                                       + str(mu_stress_influx_slope_i) + " " 
+                                                                                      + str(mu_stress_influx_slope2_i) + " " 
                                                                                       + str(mu_influx_i) + " " 
                                                                                       + str(mu_hstart_i) + " " 
                                                                                 
+                                                                                      + str(sdmu) + " " 
                                                                                       + str(sdmu) + " " 
                                                                                       + str(sdmu) + " " 
                                                                                       + str(sdmu) + " " 
@@ -207,6 +210,7 @@ for rep_i in range(0,nrep):
                                                                                       + str(init_clearance_i) + " " 
                                                                                       + str(init_stress_influx_i) + " " 
                                                                                       + str(init_stress_influx_slope_i) + " " 
+                                                                                      + str(init_stress_influx_slope_i) + " " 
                                                                                       + str(init_influx_i) + " " 
                                                                                       + str(init_hstart_i) + " " 
                                                                                 
@@ -217,11 +221,12 @@ for rep_i in range(0,nrep):
                                                                                       + str(ad_i) + " " 
                                                                                       + str(aP_i) + " " 
                                                                                 
+                                                                                      + str(opt_baseline) + " " 
                                                                                       + str(dmax) + " " 
                                                                                       + str(zmax) + " " 
                                                                                       + str(min_clearance_i) + " " 
                                                                                 
-                                                                                      + str(r_i) + " " 
+                                                                                      + str(damage_clearance_i) + " " 
                                                                                       + str(u_i) + " " 
                                                                                 
                                                                                       + str(mort_background) + " " 
