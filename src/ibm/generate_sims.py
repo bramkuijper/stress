@@ -106,13 +106,14 @@ damage_clearance = [ 1.0 ]
 damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
-nrep = 5
+nrep = 4
 
 # background mortality
 mort_background = 0.002
 
 # number of timesteps
-maxtime = 4e06
+maxtime = 1e06
+
 # number of timesteps stress influx lasts
 tmax_stress_influx = [ 5 ]
 
@@ -127,7 +128,7 @@ init_hstart = [0.5]
 
 
 ##### determine whether we should run jobs in background #####
-background_jobs = False 
+background_jobs = True
 
 host = st.gethostname()
 
