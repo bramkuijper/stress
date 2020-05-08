@@ -265,7 +265,7 @@ void write_parameters(ofstream &DataFile)
 		<< "init_stress_influx_slope;" << init_stress_influx_slope << ";"<< endl
         << "init_influx;" << init_influx << ";"<< endl
 		<< "init_hstart;" << init_hstart << ";"<< endl
-        << "tmax_stress_influx" << tmax_stress_influx << ";" << endl
+        << "tmax_stress_influx;" << tmax_stress_influx << ";" << endl
 		<< "cue_P;" << cue_P << ";"<< endl
 		<< "cue_NP;" << cue_NP << ";"<< endl
 		<< "s0;" << s0 << ";"<< endl

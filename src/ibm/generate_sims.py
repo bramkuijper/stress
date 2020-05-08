@@ -109,7 +109,7 @@ mort_background = 0.002
 
 # number of timesteps
 maxtime = 4e06
-
+#maxtime = 3
 # number of timesteps stress influx lasts
 tmax_stress_influx = [ 1 ]
 
@@ -203,6 +203,7 @@ for rep_i in range(0,nrep):
                                                                                 
                                                                                       + str(init_clearance_i) + " " 
                                                                                       + str(init_stress_influx_i) + " " 
+                                                                                      + str(init_stress_influx_slope_i) + " " 
                                                                                       + str(init_influx_i) + " " 
                                                                                       + str(init_hstart_i) + " " 
                                                                                 
