@@ -27,8 +27,9 @@ mu_clearance = [0.0005]
 
 # combination of mutation rates for 
 # 1. the stress influx and 
-# 2. the cue influx
-mu_stress_cue_influx_combis = [[0.0005,0.0]]
+# 2. the stress influx slope and 
+# 3. the cue influx
+mu_stress_cue_influx_combis = [[0.0005,0.0005, 0.0]]
 
 # mutation rate of the baseline influx
 mu_influx = [0.0005]
@@ -37,7 +38,7 @@ mu_influx = [0.0005]
 mu_hstart = [0.0005]
 
 # mutational standard deviation
-sdmu = [ 0.10]
+sdmu = 0.10
 
 
 
@@ -109,11 +110,14 @@ mort_background = 0.002
 # number of timesteps
 maxtime = 4e06
 
+# number of timesteps stress influx lasts
+tmax_stress_influx = [ 1 ]
 
 #### initial values for all traits ####
 
 init_clearance = [0.1]
 init_stress_influx = [0.4]
+init_stress_influx_slope = [0.0]
 init_influx = [0.05]
 init_hstart = [0.5]
 
@@ -147,78 +151,82 @@ for rep_i in range(0,nrep):
         for stress_cue_influx_i in mu_stress_cue_influx_combis:
     
             mu_stress_influx_i = stress_cue_influx_i[0]
-            mu_cue_influx_i = stress_cue_influx_i[1]
+            mu_stress_influx_slope_i = stress_cue_influx_i[1]
+            mu_cue_influx_i = stress_cue_influx_i[2]
 
             for mu_influx_i in mu_influx:
                 
                 for mu_hstart_i in mu_hstart:
 
-                    for sdmu_i in sdmu:
+                    for s_combi_i in s_combinations:
+                        s_P2NP_i = s_combi_i[0]
+                        s_NP2P_i = s_combi_i[1]
 
-                        for s_combi_i in s_combinations:
-                            s_P2NP_i = s_combi_i[0]
-                            s_NP2P_i = s_combi_i[1]
+                        for cue_P_i in cue_P:
+                            for cue_NP_i in cue_NP:
+                                for p_att_i in p_att:
 
-                            for cue_P_i in cue_P:
-                                for cue_NP_i in cue_NP:
-                                    for p_att_i in p_att:
+                                    for ad_i in ad:
+                                        for aP_i in aP:
 
-                                        for ad_i in ad:
-                                            for aP_i in aP:
+                                            for min_clearance_i in min_clearance:
+                                                for r_i in damage_decay:
+                                                    for u_i in damage_due_to_hormone:
 
-                                                for min_clearance_i in min_clearance:
-                                                    for r_i in damage_decay:
-                                                        for u_i in damage_due_to_hormone:
-
-                                                            for init_clearance_i in init_clearance:
+                                                        for init_clearance_i in init_clearance:
+                                                            for init_stress_influx_slope_i in init_stress_influx_slope:
                                                                 for init_stress_influx_i in init_stress_influx:
                                                                     for init_influx_i in init_influx:
                                                                         for init_hstart_i in init_hstart:
+                                                                            for tmax_stress_influx_i in tmax_stress_influx:
 
-                                                                            ctr += 1
-                                                                            print("echo " + str(ctr))
+                                                                                ctr += 1
+                                                                                print("echo " + str(ctr))
 
-                                                                            base_name_i = base_name + "_"  + str(ctr)
+                                                                                base_name_i = base_name + "_"  + str(ctr)
 
-                                                                            print(exe + " " 
-                                                                                  + str(mu_clearance_i) + " " 
-                                                                                  + str(mu_stress_influx_i) + " " 
-                                                                                  + str(mu_influx_i) + " " 
-                                                                                  + str(mu_hstart_i) + " " 
-                                                                            
-                                                                                  + str(sdmu_i) + " " 
-                                                                                  + str(sdmu_i) + " " 
-                                                                                  + str(sdmu_i) + " " 
-                                                                                  + str(sdmu_i) + " " 
+                                                                                print(exe + " " 
+                                                                                      + str(mu_clearance_i) + " " 
+                                                                                      + str(mu_stress_influx_i) + " " 
+                                                                                      + str(mu_stress_influx_slope_i) + " " 
+                                                                                      + str(mu_influx_i) + " " 
+                                                                                      + str(mu_hstart_i) + " " 
+                                                                                
+                                                                                      + str(sdmu) + " " 
+                                                                                      + str(sdmu) + " " 
+                                                                                      + str(sdmu) + " " 
+                                                                                      + str(sdmu) + " " 
+                                                                                      + str(sdmu) + " " 
 
-                                                                                  + str(s_P2NP_i) + " " 
-                                                                                  + str(s_NP2P_i) + " " 
-                                                                            
-                                                                                  + str(init_clearance_i) + " " 
-                                                                                  + str(init_stress_influx_i) + " " 
-                                                                                  + str(init_influx_i) + " " 
-                                                                                  + str(init_hstart_i) + " " 
-                                                                            
-                                                                                  + str(cue_P_i) + " " 
-                                                                                  + str(cue_NP_i) + " " 
-                                                                            
-                                                                                  + str(s0) + " " 
-                                                                                  + str(ad_i) + " " 
-                                                                                  + str(aP_i) + " " 
-                                                                            
-                                                                                  + str(dmax) + " " 
-                                                                                  + str(zmax) + " " 
-                                                                                  + str(min_clearance_i) + " " 
-                                                                            
-                                                                                  + str(r_i) + " " 
-                                                                                  + str(u_i) + " " 
-                                                                            
-                                                                                  + str(mort_background) + " " 
-                                                                                  + str(p_att_i) + " " 
+                                                                                      + str(s_P2NP_i) + " " 
+                                                                                      + str(s_NP2P_i) + " " 
+                                                                                
+                                                                                      + str(init_clearance_i) + " " 
+                                                                                      + str(init_stress_influx_i) + " " 
+                                                                                      + str(init_influx_i) + " " 
+                                                                                      + str(init_hstart_i) + " " 
+                                                                                
+                                                                                      + str(cue_P_i) + " " 
+                                                                                      + str(cue_NP_i) + " " 
+                                                                                
+                                                                                      + str(s0) + " " 
+                                                                                      + str(ad_i) + " " 
+                                                                                      + str(aP_i) + " " 
+                                                                                
+                                                                                      + str(dmax) + " " 
+                                                                                      + str(zmax) + " " 
+                                                                                      + str(min_clearance_i) + " " 
+                                                                                
+                                                                                      + str(r_i) + " " 
+                                                                                      + str(u_i) + " " 
+                                                                                
+                                                                                      + str(mort_background) + " " 
+                                                                                      + str(p_att_i) + " " 
 
-                                                                                  + str(maxtime) + " "
-                                                                                  + str(0) + " " 
-                                                                            
-                                                                                  + base_name_i + " "
-                                                                                  + str(background_str)
-                                                                                  )      
+                                                                                      + str(maxtime) + " "
+                                                                                      + str(tmax_stress_influx_i) + " "
+                                                                                      + str(0) + " " 
+                                                                                
+                                                                                      + base_name_i + " "
+                                                                                      + str(background_str)
+                                                                                      )      

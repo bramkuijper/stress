@@ -1,3 +1,5 @@
+Random seed: 1581581202
+
 t	hormone
 0	685
 1	685
@@ -200,11 +202,13 @@ t	hormone
 198	685
 199	685
 
+nIterations	1355
 
 
-pLeave 	0.9
-pArrive 	0.1
-pAttack 	0.5
-maxI 	1000000
-maxT 	200
-maxH 	1000
+PARAMETER VALUES
+pLeave: 	0.9
+pArrive: 	0.1
+pAttack: 	0.5
+maxI: 	1000000
+maxT: 	200
+maxH: 	1000
