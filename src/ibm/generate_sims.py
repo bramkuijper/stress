@@ -51,10 +51,13 @@ s_NP2P = [ 0.1 ]
 
 # switch rates as a combination of autocorrelation and risk
 # autocorr (rho = 1 - (sP2NP + sNP2P)
-autocorr = np.arange(0,1,0.1)
+#autocorr = np.arange(0,1,0.1)
+autocorr = [0,0.3,0.9]
 
 # risk (r) = sNP2P/(sP2NP + sNP2P)
-risk = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5 ]
+#risk = [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5 ]
+risk = [0.05, 0.1]
+
 
 # hence:
 # s_P2NP = (1-r) ( 1 - rho)
@@ -102,7 +105,7 @@ damage_decay = [ 1.0 ]
 damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
-nrep = 16
+nrep = 5
 
 # background mortality
 mort_background = 0.002
