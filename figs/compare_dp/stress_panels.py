@@ -224,12 +224,23 @@ def single_panel(
                         ,linewidth=0.5
                         ,alpha=sim_line_alpha
                         ,label="_nolabel")
+
+    print("dp data SHAPE: " + str(data_dp.shape[0]))
                 
+    if data_dp.shape[0] > 1:
+        data_dp = data_dp.iloc[[1],:]
+
+    print("dp data SHAPE now: " + str(data_dp.shape[0]))
                 
     if data_dp.shape[0] == 1:
                     
         dp_iter = get_dp_iter(
             filename=str(data_dp["file"].values[0]))
+
+        if "t" not in dp_iter.columns.values:
+            print(data_dp["file"].values[0])
+            print(dp_iter.columns.values)
+            raise
         
         dp_iter = dp_iter.loc[(dp_iter["t"] >= xlim[0])
                               & (dp_iter["t"] <= xlim[1])]
@@ -329,6 +340,7 @@ def stress_multipanel(
             ,filename=filename
             ,width=10
             ,wspace=0.2
+            ,hspace=0.3
             )
     
     try:

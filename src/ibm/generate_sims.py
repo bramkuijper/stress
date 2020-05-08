@@ -115,7 +115,7 @@ mort_background = 0.002
 maxtime = 1e06
 
 # number of timesteps stress influx lasts
-tmax_stress_influx = [ 5 ]
+tmax_stress_influx = [ 75 ]
 
 #### initial values for all traits ####
 
