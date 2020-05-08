@@ -17,7 +17,7 @@ def logit(x):
 
 
 
-exe = "./xstress"
+exe = "./stress.exe"
 
 
 ###### mutation rates ######
@@ -29,7 +29,7 @@ mu_clearance = [0.0005]
 # 1. the stress influx and 
 # 2. the stress influx slope and 
 # 3. the cue influx
-mu_stress_cue_influx_combis = [[0.0005,0.0, 0.0]]
+mu_stress_cue_influx_combis = [[0.0005,0.0005, 0.0]]
 
 # mutation rate of the baseline influx
 mu_influx = [0.0005]
@@ -111,7 +111,7 @@ mort_background = 0.002
 maxtime = 4e06
 #maxtime = 3
 # number of timesteps stress influx lasts
-tmax_stress_influx = [ 1 ]
+tmax_stress_influx = [ 5 ]
 
 #### initial values for all traits ####
 
