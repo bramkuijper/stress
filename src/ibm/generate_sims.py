@@ -25,11 +25,11 @@ exe = "./stress.exe"
 mu_clearance = [0.0005]
 
 # combination of mutation rates for 
-# 1. the stress influx and 
-# 2. the stress influx slope and 
-# 3. the stress influx slope^2 and 
+# 0   mu_stress_influx  = atof(argv[2]);
+# 1   mu_h1_S  = atof(argv[3]);
+# 2   mu_h1_I  = atof(argv[4]);
 # 3. the cue influx
-mu_stress_cue_influx_combis = [[0.0005,0.0005,0.0005, 0.0]]
+mu_stress_cue_influx_combis = [[0,0.005,0.0, 0.0]]
 
 # mutation rate of the baseline influx
 mu_influx = [0.0005]
@@ -94,6 +94,7 @@ s0 = 0.0
 
 dmax = 1.0
 zmax = 1.0
+stress_influx_max = 0.25
 min_clearance = [0.01]
 opt_baseline = 0.3
 
@@ -225,6 +226,7 @@ for rep_i in range(0,nrep):
                                                                                       + str(opt_baseline) + " " 
                                                                                       + str(dmax) + " " 
                                                                                       + str(zmax) + " " 
+                                                                                      + str(stress_influx_max) + " " 
                                                                                       + str(min_clearance_i) + " " 
                                                                                 
                                                                                       + str(damage_clearance_i) + " " 
