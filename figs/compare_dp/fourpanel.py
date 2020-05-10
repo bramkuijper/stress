@@ -58,9 +58,29 @@ params_panel_4 = {
     ,"sP2NP_1":0.095
     ,"sNP2P_1":0.005}
 
+in_panel_text1 = dict(x=0.7
+        ,y=0.1
+        ,label="Risk: 0.05" + "\n" + "Autocorrelation: 0")
+
+in_panel_text2 = dict(x=0.5
+        ,y=0.5
+        ,label="Risk: 0.05" + "\n" + "Autocorrelation: 0.3")
+
+in_panel_text3 = dict(x=0.7
+        ,y=0.1
+        ,label="Risk: 0.1" + "\n" + "Autocorrelation: 0")
+
+in_panel_text4 = dict(x=0.5
+        ,y=0.5
+        ,label="Risk: 0.1" + "\n" + "Autocorrelation: 0.9")
+
+
+text_array = np.array([[in_panel_text1, in_panel_text2],[in_panel_text3,in_panel_text4]])
+
 stress_panels.stress_multipanel(
         param_array=np.array([[params_panel_1,params_panel_2],[params_panel_3, params_panel_4]])
         ,title_array=[[r"Random environment","Autocorrelated environment"],["",""]]
+        ,label_array=text_array
         ,sim_data=sim_data
         ,dp_data=dp_data
         ,filename="fourpanel_fig.svg"

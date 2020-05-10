@@ -141,6 +141,7 @@ def single_panel(
         ,xlab=""
         ,ylab=""
         ,title=""
+        ,labeldict=None
         ):
     
     
@@ -263,6 +264,12 @@ def single_panel(
 
     ylab = ""
 
+    if labeldict != None:
+        the_axis.text(x=labeldict["x"]
+                ,y=labeldict["y"]
+                ,s=labeldict["label"]
+                ,transform=the_axis.transAxes)
+
     # end the figure
     multipanel_obj.end_block(
             the_axis
@@ -272,7 +279,7 @@ def single_panel(
             ,x_ticks_minor = 1
             ,x_ticks_major_multiple = 25
             ,y_ticks_major_multiple = 0.25
-            ,xticks=xticks
+            ,xticks=row_i == multipanel_obj.rows - 1
             ,yticks=col_i == 0
             ,title=title
             ,xlabel=xlab
@@ -319,6 +326,7 @@ def stress_multipanel(
         ,dp_data
         ,filename
         ,title_array=None
+        ,label_array=None
         ,min_time_iter = 0
         ,max_time_iter = 150
         ,newzero = 0
@@ -371,7 +379,11 @@ def stress_multipanel(
                 if title is not None:
                     
                     title= title_array[row_i][col_i]
-                    
+                  
+                labeldict = None
+                if label_array is not None:
+                    labeldict = label_array[row_i][col_i]
+
 
                 single_panel(
                     data_dp=dp_subset
@@ -384,6 +396,7 @@ def stress_multipanel(
                     ,newzero=newzero
                     ,xlim=xlim
                     ,title=title
+                    ,labeldict=labeldict
                     )
 
                 # check whether there is iteration data for this
