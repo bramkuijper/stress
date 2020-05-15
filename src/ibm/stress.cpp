@@ -95,7 +95,6 @@ double pr_envt_is_P = 0.0;
 
 // initial values for the evolving traits
 double init_clearance = 0.0;
-double init_stress_influx = 0.0;
 double init_h1_S = 0.0;
 double init_h1_I = 0.0;
 double init_influx = 0.0;
@@ -143,9 +142,6 @@ struct Individual
     // self-dependent increase/decrease in hormone
     double clearance[2];
 
-    // baseline influx of new hormone when encountering stress
-    double stress_influx[2];
-    
     // strength of neg feedback on stress influx
     double h1_S[2];
     

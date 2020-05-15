@@ -6,7 +6,7 @@ import numpy as np
 
 
 dp_summary_file = "summary_dp.csv"
-sims_summary_file = "summary_sims.csv"
+sims_summary_file = "summary_sims_t75.csv"
 
 
 translate_cols = {
@@ -83,7 +83,7 @@ stress_panels.stress_multipanel(
         ,label_array=text_array
         ,sim_data=sim_data
         ,dp_data=dp_data
-        ,filename="fourpanel_fig.svg"
+        ,filename="fourpanel_fig_t75.pdf"
         ,min_time_iter = 80
         ,max_time_iter =200 
         ,newzero = -100
