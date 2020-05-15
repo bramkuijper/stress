@@ -28,7 +28,7 @@ mu_clearance = [0.0005]
 # 0   mu_stress_influx  = atof(argv[2]);
 # 1   mu_h1_S  = atof(argv[3]);
 # 2   mu_h1_I  = atof(argv[4]);
-# 3. the cue influx
+# 3. the cue influx (not used yet)
 mu_stress_cue_influx_combis = [[0,0.005,0.0, 0.0]]
 
 # mutation rate of the baseline influx

@@ -154,8 +154,12 @@ struct Individual
 
     // stress independent hormone influx
     double influx[2];
+
     // starting hormone level
     double hstart[2];
+
+    // control
+    double hx;
 
     // components of the individual's state
     double hormone; // current hormone level
@@ -345,6 +349,8 @@ void init_population()
         newInd.damage = (damage_clearance > 0) ? u * newInd.hormone/damage_clearance : 1.0;
         clamp(newInd.damage, 0.0, dmax);
 
+        newInd.hx = 0;
+
         // use equilibrium probability for P and NP
         newInd.envt_is_P = uniform(rng_r) < pr_envt_is_P;
 
@@ -457,6 +463,8 @@ void create_offspring(
     kid.damage = u * kid.hormone;
     clamp(kid.damage, 0.0, dmax);
 
+    kid.hx = 0;
+
     // let kid start its life in "random" environment
     kid.envt_is_P = uniform(rng_r) < pr_envt_is_P;
 
@@ -545,7 +553,8 @@ void survive(ofstream &datafile)
 
             if (uniform(rng_r) < p_cue) {
                 // individual gets predator cue
-                pop[ind_i].hormone += stress_influx;
+                //pop[ind_i].hormone += stress_influx;
+                pop[ind_i].time_since_last_stressor = 0;
             }
 
             clamp(pop[ind_i].hormone, 0.0, zmax);
@@ -581,9 +590,13 @@ void survive(ofstream &datafile)
 
             if (pop[ind_i].time_since_last_stressor < tmax_stress_influx)
             {
+                if (pop[ind_i].hx < pop[ind_i].hormone)
+                {
+                    pop[ind_i].hx = pop[ind_i].hormone;
+                }
                 // if individuals are within the time interval [0,tmax_stress_influx)
                 // then add stress influx and hormone-dependent stress influx
-                pop[ind_i].hormone += stress_influx_max * g(pop[ind_i].hormone, h1_S);
+                pop[ind_i].hormone += stress_influx_max * g(pop[ind_i].hx, h1_S);
                 clamp(pop[ind_i].hormone, 0.0, zmax);
             }
         } // if (pop[ind_i].alive)
@@ -797,7 +810,7 @@ void write_simple_iter(ofstream &IterFile)
     // use an individual's genotype to compute its
     // hormone response to a single stressor event at time step tstress
 
-    double hormone, hormone_tplus1, hormone_feedback;
+    double hormone, hormone_tplus1;
 
     Individual ind;
 
@@ -836,6 +849,10 @@ void write_simple_iter(ofstream &IterFile)
 
             if (timestep >= tstress && timestep < tstress + tmax_stress_influx)
             {
+                if (pop[ind_i].hx < pop[ind_i].hormone)
+                {
+                    pop[ind_i].hx = pop[ind_i].hormone;
+                }
                 hormone_tplus1 += stress_influx_max * g(hormone_tplus1, h1_S);
             }
 
