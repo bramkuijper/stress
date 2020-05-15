@@ -97,6 +97,7 @@ double pr_envt_is_P = 0.0;
 double init_clearance = 0.0;
 double init_h1_S = 0.0;
 double init_h1_I = 0.0;
+double init_stress_influx = 0.0;
 double init_influx = 0.0;
 double init_hstart = 0.0;
 
@@ -141,6 +142,8 @@ struct Individual
     // diploid loci specifying the evolving traits
     // self-dependent increase/decrease in hormone
     double clearance[2];
+
+    double stress_influx[2];
 
     // strength of neg feedback on stress influx
     double h1_S[2];
