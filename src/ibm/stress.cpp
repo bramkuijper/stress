@@ -590,14 +590,15 @@ void survive(ofstream &datafile)
 
             if (pop[ind_i].time_since_last_stressor < tmax_stress_influx)
             {
-                if (pop[ind_i].hx < pop[ind_i].hormone)
-                {
-                    pop[ind_i].hx = pop[ind_i].hormone;
-                }
                 // if individuals are within the time interval [0,tmax_stress_influx)
                 // then add stress influx and hormone-dependent stress influx
                 pop[ind_i].hormone += stress_influx_max * g(pop[ind_i].hx, h1_S);
                 clamp(pop[ind_i].hormone, 0.0, zmax);
+                
+                if (pop[ind_i].hx < pop[ind_i].hormone)
+                {
+                    pop[ind_i].hx = pop[ind_i].hormone;
+                }
             }
         } // if (pop[ind_i].alive)
 
@@ -849,11 +850,14 @@ void write_simple_iter(ofstream &IterFile)
 
             if (timestep >= tstress && timestep < tstress + tmax_stress_influx)
             {
+                hormone_tplus1 += stress_influx_max * g(hormone_tplus1, h1_S);
+                
+                clamp(hormone_tplus1, 0.0, zmax);
+                
                 if (pop[ind_i].hx < pop[ind_i].hormone)
                 {
                     pop[ind_i].hx = pop[ind_i].hormone;
                 }
-                hormone_tplus1 += stress_influx_max * g(hormone_tplus1, h1_S);
             }
 
             clamp(hormone_tplus1, 0.0, zmax);
