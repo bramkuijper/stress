@@ -6,7 +6,7 @@ import numpy as np
 
 
 dp_summary_file = "summary_dp.csv"
-sims_summary_file = "summary_sims_t75.csv"
+sims_summary_file = "summary_sims_t5.csv"
 
 
 translate_cols = {
@@ -26,7 +26,7 @@ dp_data = dp_data.rename(
     )
 
 dp_data["aP"] = 1.0
-dp_data["ad"] = 1.5
+dp_data["ad"] = 2
 
 
 # read in simulation data
@@ -34,27 +34,28 @@ sim_data = pd.read_csv(filepath_or_buffer=sims_summary_file
                        ,sep=";")
 
 
+
 params_panel_1 = {
     "aP": 1
-    ,"ad":1.5
+    ,"ad":2
     ,"sP2NP_1":0.95
     ,"sNP2P_1":0.05}
 
 params_panel_2 = {
     "aP": 1
-    ,"ad":1.5
+    ,"ad":2
     ,"sP2NP_1":0.665
     ,"sNP2P_1":0.035}
 
 params_panel_3 = {
     "aP": 1
-    ,"ad":1.5
+    ,"ad":2
     ,"sP2NP_1":0.9
     ,"sNP2P_1":0.1}
 
 params_panel_4 = {
     "aP": 1
-    ,"ad":1.5
+    ,"ad":2
     ,"sP2NP_1":0.095
     ,"sNP2P_1":0.005}
 
@@ -83,9 +84,27 @@ stress_panels.stress_multipanel(
         ,label_array=text_array
         ,sim_data=sim_data
         ,dp_data=dp_data
-        ,filename="fourpanel_fig_t75.pdf"
+        ,filename="fourpanel_fig.pdf"
         ,min_time_iter = 80
         ,max_time_iter =200 
         ,newzero = -100
         ,xlim=[-25,100]
         )
+
+
+stress_panels.stress_multipanel(
+        param_array=np.array([[params_panel_1,params_panel_2],[params_panel_3, params_panel_4]])
+        ,title_array=[[r"Random environment","Autocorrelated environment"],["",""]]
+        ,label_array=text_array
+        ,sim_data=sim_data
+        ,dp_data=dp_data
+        ,filename="fourpanel_fig_invu.pdf"
+        ,min_time_iter = 80
+        ,max_time_iter =200 
+        ,newzero = -100
+        ,xlim=[-25,100]
+        )
+
+
+
+
