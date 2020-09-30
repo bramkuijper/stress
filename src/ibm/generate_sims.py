@@ -90,13 +90,13 @@ damage_decay = [ 1.0 ]
 damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
-nrep = 3
+nrep = 16
 
 # background mortality
 mort_background = 0.002
 
 # number of timesteps
-maxtime = 5e05
+maxtime = 1e06
 
 
 #### initial values for all traits ####
