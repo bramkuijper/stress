@@ -2,10 +2,6 @@
 // Bram Kuijper
 //
 
-// The NDEBUG macro should be defined (before including <cassert>) if we DON'T
-// want to do debugging (using the assert macro)
-#define NDEBUG
-
 // important libraries
 #include <ctime>
 #include <iostream>
@@ -21,24 +17,20 @@
 #include <random>
 
 
-// Note from Olle: using namespace std is often regarded as bad practice, but I
-// have not changed it here
-using namespace std;
-
 
 // set up the random number generator using a good way of getting random seed
-random_device rd;
+std::random_device rd;
 unsigned seed = rd();
-mt19937 rng_r(seed);
-uniform_real_distribution<> uniform(0.0,1.0);
+std::mt19937 rng_r(seed);
+std::uniform_real_distribution<> uniform(0.0,1.0);
 
 // for meiotic segregation
-bernoulli_distribution random_allele(0.5);
+std::bernoulli_distribution random_allele(0.5);
 
 
 // the NumGen parameter is actually the number of time steps with overlapping
 // generations; it is read from the command line
-int NumGen = 1000;
+int NumGen = 200000;
 
 // population size
 const int Npop = 5000;
@@ -116,7 +108,7 @@ double u = 1.0;
 // parameters for input/output of pop to text file; they are read from the
 // command line
 int ioind = 0; // 0 = none; 1 = output to file; 2 = both in/output
-string base_name;
+std::string base_name;
 
 // mortalities across the two environments in the order NP, P
 int Nmort_stats[2] = {0,0};
@@ -136,8 +128,10 @@ struct Individual
     double clearance[2];
     // influx of new hormone when encountering stress
     double stress_influx[2];
+    
     // stress independent hormone influx
     double influx[2];
+
     // starting hormone level
     double hstart[2];
 
@@ -205,19 +199,6 @@ void init_arguments(int argc, char *argv[])
 }
 
 
-// apply boundaries to a certain value
-void clamp(double &val, double const min, double const max)
-{
-    if (val > max)
-    {
-        val = max;
-    }
-    else if (val < min)
-    {
-        val = min;
-    }
-}
-
 // mutation according to a continuum of alleles model
 void mutate(
         double &G,
@@ -227,7 +208,7 @@ void mutate(
 
     if (uniform(rng_r) < mu)
     {
-        normal_distribution<> allele_dist(0.0, sdmu);
+        std::normal_distribution<> allele_dist(0.0, sdmu);
         G += allele_dist(rng_r);
     }
 }
@@ -235,39 +216,39 @@ void mutate(
 
 // write the parameters
 // (typically at the end of the output file)
-void write_parameters(ofstream &DataFile)
+void write_parameters(std::ofstream &DataFile)
 {
-	DataFile << endl
-		<< endl
-		<< "seed;" << seed << ";"<< endl
-		<< "Npop;" << Npop << ";"<< endl
-		<< "mu_clearance;" << mu_clearance << ";"<< endl
-		<< "mu_stress_influx;" << mu_stress_influx << ";"<< endl
-        << "mu_influx;" << mu_influx << ";"<< endl
-		<< "mu_hstart;" << mu_hstart << ";"<< endl
-		<< "sP2NP_1;" << s_P_2_NP << ";"<< endl
-		<< "sNP2P_1;" << s_NP_2_P << ";"<< endl
-		<< "init_clearance;" << init_clearance << ";"<< endl
-		<< "init_stress_influx;" << init_stress_influx << ";"<< endl
-        << "init_influx;" << init_influx << ";"<< endl
-		<< "init_hstart;" << init_hstart << ";"<< endl
-		<< "cue_P;" << cue_P << ";"<< endl
-		<< "cue_NP;" << cue_NP << ";"<< endl
-		<< "s0;" << s0 << ";"<< endl
-		<< "ad;" << ad << ";"<< endl
-		<< "aP;" << aP << ";"<< endl
-        << "risk;" << s_NP_2_P / (s_NP_2_P + s_P_2_NP)  << ";" << endl
-        << "autocorr;" << 1.0 - s_NP_2_P - s_P_2_NP  << ";" << endl
-		<< "mort_background;" << mort_background << ";"<< endl
-		<< "dopt;" << dopt << ";"<< endl
-		<< "sel_width;" << sel_width << ";"<< endl
-		<< "zmax;" << zmax << ";"<< endl
-		<< "min_clearance;" << min_clearance << ";"<< endl
-		<< "r;" << r << ";"<< endl
-        << "u;" << u << ";"<< endl
-		<< "p_att;" << p_att << ";"<< endl
-        << "NumGen;" << NumGen << ";"<< endl
-        << "base_name;" << base_name << ";"<< endl;
+	DataFile << std::endl
+		<< std::endl
+		<< "seed;" << seed << ";"<< std::endl
+		<< "Npop;" << Npop << ";"<< std::endl
+		<< "mu_clearance;" << mu_clearance << ";"<< std::endl
+		<< "mu_stress_influx;" << mu_stress_influx << ";"<< std::endl
+        << "mu_influx;" << mu_influx << ";"<< std::endl
+		<< "mu_hstart;" << mu_hstart << ";"<< std::endl
+		<< "sP2NP_1;" << s_P_2_NP << ";"<< std::endl
+		<< "sNP2P_1;" << s_NP_2_P << ";"<< std::endl
+		<< "init_clearance;" << init_clearance << ";"<< std::endl
+		<< "init_stress_influx;" << init_stress_influx << ";"<< std::endl
+        << "init_influx;" << init_influx << ";"<< std::endl
+		<< "init_hstart;" << init_hstart << ";"<< std::endl
+		<< "cue_P;" << cue_P << ";"<< std::endl
+		<< "cue_NP;" << cue_NP << ";"<< std::endl
+		<< "s0;" << s0 << ";"<< std::endl
+		<< "ad;" << ad << ";"<< std::endl
+		<< "aP;" << aP << ";"<< std::endl
+        << "risk;" << s_NP_2_P / (s_NP_2_P + s_P_2_NP)  << ";" << std::endl
+        << "autocorr;" << 1.0 - s_NP_2_P - s_P_2_NP  << ";" << std::endl
+		<< "mort_background;" << mort_background << ";"<< std::endl
+		<< "dopt;" << dopt << ";"<< std::endl
+		<< "sel_width;" << sel_width << ";"<< std::endl
+		<< "zmax;" << zmax << ";"<< std::endl
+		<< "min_clearance;" << min_clearance << ";"<< std::endl
+		<< "r;" << r << ";"<< std::endl
+        << "u;" << u << ";"<< std::endl
+		<< "p_att;" << p_att << ";"<< std::endl
+        << "NumGen;" << NumGen << ";"<< std::endl
+        << "base_name;" << base_name << ";"<< std::endl;
 }
 
 
@@ -294,9 +275,9 @@ void init_population()
 
         // initialize hormone level and damage
         newInd.hormone = 0.5*(newInd.hstart[0] + newInd.hstart[1]);
-        clamp(newInd.hormone, 0.0, zmax);
+        std::clamp(newInd.hormone, 0.0, zmax);
         newInd.damage = (r > 0) ? u * newInd.hormone/r : 1.0;
-        clamp(newInd.damage, 0.0, 1.0);
+        std::clamp(newInd.damage, 0.0, 1.0);
 
         // use equilibrium probability for P and NP
         newInd.envt_is_P = uniform(rng_r) < pr_envt_is_P;
@@ -346,40 +327,40 @@ void create_offspring(
     kid.hstart[1] = pat_hstart;
 
     // take into account mutation and note that allelic values are on logit
-    // scale (and need not be clamped)
+    // scale (and need not be std::clamped)
     for (int allele_i = 0; allele_i < 2; ++allele_i)
     {
         mutate(
                 kid.clearance[allele_i],
                 mu_clearance,
                 sdmu_clearance);
-        clamp(kid.clearance[allele_i], min_clearance, 1.0);
+        std::clamp(kid.clearance[allele_i], min_clearance, 1.0);
 
         mutate(
                 kid.stress_influx[allele_i],
                 mu_stress_influx,
                 sdmu_stress_influx
                 );
-        clamp(kid.stress_influx[allele_i], 0.0, 1.0);
+        std::clamp(kid.stress_influx[allele_i], 0.0, 1.0);
 
         mutate(
                 kid.influx[allele_i],
                 mu_influx,
                 sdmu_influx);
-        clamp(kid.influx[allele_i], 0.0, 1.0);
+        std::clamp(kid.influx[allele_i], 0.0, 1.0);
 
         mutate(
                 kid.hstart[allele_i],
                 mu_hstart,
                 sdmu_hstart);
-        clamp(kid.hstart[allele_i], 0.0, 1.0);
+        std::clamp(kid.hstart[allele_i], 0.0, 1.0);
     }
 
     // set hormone level and damage
     kid.hormone = 0.5*(kid.hstart[0] + kid.hstart[1]);
-    clamp(kid.hormone, 0.0, zmax);
+    std::clamp(kid.hormone, 0.0, zmax);
     kid.damage = u * kid.hormone;
-    clamp(kid.damage, 0.0, 1.0);
+    std::clamp(kid.damage, 0.0, 1.0);
 
     // let kid start its life in "random" environment
     kid.envt_is_P = uniform(rng_r) < pr_envt_is_P;
@@ -422,7 +403,7 @@ void environmental_switching()
 
 
 // survival of individuals
-void survive(ofstream &datafile)
+void survive(std::ofstream &datafile)
 {
     // reset fecundity averages
     // that are tracked for stats
@@ -456,7 +437,7 @@ void survive(ofstream &datafile)
                 // individual gets predator cue
                 pop[ind_i].hormone += stress_influx;
             }
-            clamp(pop[ind_i].hormone, 0.0, zmax);
+            std::clamp(pop[ind_i].hormone, 0.0, zmax);
             // take into account possible predator attack
             if (pop[ind_i].envt_is_P) { // attack only possible if P
                 if (uniform(rng_r) < p_att) { // predator attacks
@@ -469,14 +450,14 @@ void survive(ofstream &datafile)
                         ++Nmort_stats[1];
                         if (num_alive == 0)
                         {
-                            cout << "extinct" << endl;
+                            std::cout << "extinct" << std::endl;
                             write_parameters(datafile);
                             exit(1);
                         }
                     } else {
                         // individual survives and gets hormone spike
                         pop[ind_i].hormone += stress_influx;
-                        clamp(pop[ind_i].hormone, 0.0, zmax);
+                        std::clamp(pop[ind_i].hormone, 0.0, zmax);
                     }
                 }
             }
@@ -497,7 +478,7 @@ void survive(ofstream &datafile)
                 fecundity[ind_i] = 0.0;
                 if (num_alive == 0)
                 {
-                    cout << "extinct" << endl;
+                    std::cout << "extinct" << std::endl;
                     write_parameters(datafile);
                     exit(1);
                 }
@@ -505,10 +486,10 @@ void survive(ofstream &datafile)
                 // update damage levels
                 pop[ind_i].damage = (1.0 - r) * pop[ind_i].damage +
                     u * pop[ind_i].hormone;
-                clamp(pop[ind_i].damage,0.0,1.0);
+                std::clamp(pop[ind_i].damage,0.0,1.0);
                 // damage-dependent fecundity
                 fecundity[ind_i] = 1.0 - sel_width * pow(pop[ind_i].damage - dopt,ad);  //1.0 - pow(pop[ind_i].damage/dmax,ad);
-                clamp(fecundity[ind_i],0.0,1.0);
+                std::clamp(fecundity[ind_i],0.0,1.0);
                 fecundity_stats[pop[ind_i].envt_is_P] += fecundity[ind_i];
             }
         } else { // dead individual, no fecundity
@@ -522,14 +503,14 @@ void survive(ofstream &datafile)
 
 
 // fail-safe function to do reproduction
-void reproduce_check(ofstream &datafile)
+void reproduce_check(std::ofstream &datafile)
 {
     // run through population and replace all dead individuals with offspring;
     // the parents for each offspring are randomly selected from the entire
     // population (this is a bit unrealistic); to select random parents, we use
     // a std::discrete_distribution<int> with fecundity vector as weights (note:
     // fecundity is zero for dead individuals)
-    discrete_distribution<int> par_distr(fecundity.begin(), fecundity.end());
+    std::discrete_distribution<int> par_distr(fecundity.begin(), fecundity.end());
     for (int ind_i = 0; ind_i < Npop; ++ind_i)
     {
         if (!pop[ind_i].alive) { // replace this dead individual
@@ -545,7 +526,7 @@ void reproduce_check(ofstream &datafile)
 
 
 // write summary statistics
-void write_data(ofstream &DataFile)
+void write_data(std::ofstream &DataFile)
 {
     double mean_clearance = 0;
     double ss_clearance = 0;
@@ -619,11 +600,11 @@ void write_data(ofstream &DataFile)
         << (double)Nmort_stats[0]/numNP << ";"
         << (double)fecundity_stats[1] << ";"
         << (double)fecundity_stats[0] << ";"
-        << endl;
+        << std::endl;
 }
 
 // write the headers of a datafile
-void write_data_headers(ofstream &DataFile)
+void write_data_headers(std::ofstream &DataFile)
 {
     DataFile << "generation;"
         << "freq_P" << ";"
@@ -641,13 +622,13 @@ void write_data_headers(ofstream &DataFile)
         << "prop_dead_NP" << ";"
         << "mean_fecundity_P" << ";"
         << "mean_fecundity_NP" << ";"
-        << endl;
+        << std::endl;
 }
 
 // iterate individuals for tmax timesteps
 // to plot the stress response curve for
 // different individuals
-void write_simple_iter(ofstream &IterFile)
+void write_simple_iter(std::ofstream &IterFile)
 {
     // number of individuals
     int nrep = 20;
@@ -661,9 +642,9 @@ void write_simple_iter(ofstream &IterFile)
 
     Individual ind;
 
-    IterFile << "time;individual;hormone;" << endl;
+    IterFile << "time;individual;hormone;" << std::endl;
 
-    uniform_int_distribution<int> rint(0, Npop - 1);
+    std::uniform_int_distribution<int> rint(0, Npop - 1);
 
     // sample individuals
     for (int ind_i = 0; ind_i < nrep; ++ind_i)
@@ -680,10 +661,10 @@ void write_simple_iter(ofstream &IterFile)
         // hormone baseline level
         hormone = (clearance > 0) ? influx/clearance : 1.0;
         hormone = hstart;
-        clamp(hormone, 0.0, zmax);
+        std::clamp(hormone, 0.0, zmax);
         hormone_tplus1 = 0.0;
 
-        IterFile << 0 << ";" << ind_i << ";" << hormone << ";" << endl;
+        IterFile << 0 << ";" << ind_i << ";" << hormone << ";" << std::endl;
 
         // iterate the stress response for this individual
         for (int timestep = 0; timestep < tmax; ++timestep)
@@ -693,19 +674,19 @@ void write_simple_iter(ofstream &IterFile)
             {
                 hormone_tplus1 += stress_influx;
             }
-            clamp(hormone_tplus1, 0.0, zmax);
+            std::clamp(hormone_tplus1, 0.0, zmax);
             hormone = hormone_tplus1;
 
             IterFile << timestep << ";" << (ind_i + 1) << ";"
-                     << hormone << ";" << endl;
+                     << hormone << ";" << std::endl;
         }
     }
 }
 
 // code to read population from tab-separated text file
-void read_pop_from_file(string infilename)
+void read_pop_from_file(std::string infilename)
 {
-    ifstream infile(infilename.c_str());
+    std::ifstream infile(infilename.c_str());
     if (!infile) {
         std::cerr << "Could not open file " << infilename << '\n';
     } else {
@@ -761,7 +742,7 @@ void read_pop_from_file(string infilename)
 }
 
 // code to write population to tab-separated text file
-void write_pop_to_file(ofstream &PopFile)
+void write_pop_to_file(std::ofstream &PopFile)
 {
     // first write headers
     PopFile << "clearance1" << "\t" << "clearance2" << "\t"
@@ -821,8 +802,8 @@ int main(int argc, char ** argv)
     }
 
     // base_name for files
-    ofstream DataFile(base_name.c_str());
-    ofstream IterFile((base_name + "iters.csv").c_str());
+    std::ofstream DataFile(base_name.c_str());
+    std::ofstream IterFile((base_name + "iters.csv").c_str());
 
     // write some params
 	write_parameters(DataFile);
@@ -851,7 +832,7 @@ int main(int argc, char ** argv)
 
     if (ioind > 0) {
         // write pop to file
-        ofstream PopFile((base_name + "pop.txt").c_str());
+        std::ofstream PopFile((base_name + "pop.txt").c_str());
         write_pop_to_file(PopFile);
     }
 

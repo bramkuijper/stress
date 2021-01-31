@@ -86,7 +86,7 @@ min_clearance = [0.01]
 # 1.0: full decay, i.e
 # no damage lingering after current timestep
 # 0.0: no decay whatsoever
-damage_decay = [ 1.0 ]
+damage_clearance = [ 1.0 ]
 damage_due_to_hormone = [ 1.0 ]
 
 # number of replicates
@@ -156,7 +156,7 @@ for rep_i in range(0,nrep):
                                             for aP_i in aP:
 
                                                 for min_clearance_i in min_clearance:
-                                                    for r_i in damage_decay:
+                                                    for damage_clearance_i in damage_clearance:
                                                         for u_i in damage_due_to_hormone:
 
                                                             for init_clearance_i in init_clearance:
@@ -200,7 +200,7 @@ for rep_i in range(0,nrep):
                                                                                   + str(zmax) + " " 
                                                                                   + str(min_clearance_i) + " " 
                                                                             
-                                                                                  + str(r_i) + " " 
+                                                                                  + str(damage_clearance_i) + " " 
                                                                                   + str(u_i) + " " 
                                                                             
                                                                                   + str(mort_background) + " " 
