@@ -2,10 +2,6 @@
 // Bram Kuijper
 //
 
-// The NDEBUG macro should be defined (before including <cassert>) if we DON'T
-// want to do debugging (using the assert macro)
-#define NDEBUG
-
 // important libraries
 #include <ctime>
 #include <iostream>
@@ -21,19 +17,14 @@
 #include <random>
 
 
-// Note from Olle: using namespace std is often regarded as bad practice, but I
-// have not changed it here
-using namespace std;
-
-
 // set up the random number generator using a good way of getting random seed
-random_device rd;
+std::random_device rd;
 unsigned seed = rd();
-mt19937 rng_r(seed);
-uniform_real_distribution<> uniform(0.0,1.0);
+std::mt19937 rng_r(seed);
+std::uniform_real_distribution<> uniform(0.0,1.0);
 
 // for meiotic segregation
-bernoulli_distribution random_allele(0.5);
+std::bernoulli_distribution random_allele(0.5);
 
 
 // the NumGen parameter is actually the number of time steps with overlapping
@@ -236,19 +227,6 @@ void init_arguments(int argc, char *argv[])
 } // end init_arguments
 
 
-// apply boundaries to a certain value
-void clamp(double &val, double const min, double const max)
-{
-    if (val > max)
-    {
-        val = max;
-    }
-    else if (val < min)
-    {
-        val = min;
-    }
-}
-
 double g(double const h
         ,double const h1)
 {
@@ -345,6 +323,8 @@ void init_population()
         // initialize hormone level and damage
         newInd.hormone = 0.5*(newInd.hstart[0] + newInd.hstart[1]);
         clamp(newInd.hormone, 0.0, zmax);
+
+        // initialize an individual at the equilibria
         newInd.damage = (damage_clearance > 0) ? u * newInd.hormone/damage_clearance : 1.0;
         clamp(newInd.damage, 0.0, dmax);
 
