@@ -1,5 +1,5 @@
 stress.exe: stress.cpp
-	g++ -Wall -O3 -std=c++11 -o stress.exe stress.cpp 
+	g++ -Wall -O3 -std=c++17 -o stress.exe stress.cpp 
 
 
 clean:
