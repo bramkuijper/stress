@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# this script is called from fourpanels.py
+
 # plots the first generation's outcome
 from pythontools import multipanel
 import pandas as pd
@@ -127,9 +129,9 @@ def get_iter_data(df, iter_dir="."):
 #### function declarations ####
 
 def single_panel(
-        data_dp
-        ,data_sims
+        data_sims
         ,multipanel_obj
+        ,data_dp=None
         ,row_i=0
         ,col_i=0
         ,min_time_iter = 0
@@ -226,14 +228,15 @@ def single_panel(
                         ,alpha=sim_line_alpha
                         ,label="_nolabel")
 
-    print("dp data SHAPE: " + str(data_dp.shape[0]))
+    if type(data_dp) == type(data_sims):
+        print("dp data SHAPE: " + str(data_dp.shape[0]))
                 
-    if data_dp.shape[0] > 1:
-        data_dp = data_dp.iloc[[1],:]
+        if data_dp.shape[0] > 1:
+            data_dp = data_dp.iloc[[1],:]
 
-    print("dp data SHAPE now: " + str(data_dp.shape[0]))
+        print("dp data SHAPE now: " + str(data_dp.shape[0]))
                 
-    if data_dp.shape[0] == 1:
+    if type(data_dp) == type(data_sims) and data_dp.shape[0] == 1:
                     
         dp_iter = get_dp_iter(
             filename=str(data_dp["file"].values[0]))
@@ -323,8 +326,8 @@ def check_columns(
 def stress_multipanel(
         param_array
         ,sim_data
-        ,dp_data
         ,filename
+        ,dp_data=None
         ,title_array=None
         ,label_array=None
         ,min_time_iter = 0
@@ -363,16 +366,24 @@ def stress_multipanel(
                 check_columns(
                     param_dict=single_panel_dictionary
                     ,data=sim_data)
-                
-                check_columns(
-                    param_dict=single_panel_dictionary
-                    ,data=dp_data)
+
+                # check whether dp is a dataframe,
+                # otherwise skip this
+                if type(dp_data) == type(sim_data):
+                    
+                    check_columns(
+                        param_dict=single_panel_dictionary
+                        ,data=dp_data)
                         
                 # make a query string
                 query_string = make_query(single_panel_dictionary)
             
                 sim_subset = sim_data.query(query_string)
-                dp_subset = dp_data.query(query_string)
+
+                dp_subset = None
+
+                if type(dp_data) == type(sim_data):
+                    dp_subset = dp_data.query(query_string)
                 
                 title = ""
                 
@@ -430,7 +441,7 @@ def stress_multipanel(
     the_fig.fig.text(
             x=0.05
             ,y = 0.52
-            ,s="Hormone level, $z$"
+            ,s="Hormone level"
             ,rotation=90
             ,fontsize=18
             ,horizontalalignment="center"
