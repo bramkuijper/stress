@@ -88,7 +88,7 @@ def analyze_file(filename):
 for root, dirs, files in os.walk(sys.argv[1]):
 
     for name in files:
-        if re.match("(sim|iter).*",name) != None:
+        if re.match("(sim|iter).*\d$",name) != None:
             data = analyze_file(os.path.join(root,name))
 
 

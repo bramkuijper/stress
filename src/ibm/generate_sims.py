@@ -17,7 +17,7 @@ def logit(x):
 
 
 
-exe = "./xstress"
+exe = "./stress.exe"
 
 
 ###### mutation rates ######
@@ -86,11 +86,11 @@ min_clearance = [0.01]
 # 1.0: full decay, i.e
 # no damage lingering after current timestep
 # 0.0: no decay whatsoever
-damage_clearance = [ 1.0 ]
-damage_due_to_hormone = [ 1.0 ]
+damage_clearance = [ 0.1, 0.5, 0.8, 1.0 ]
+damage_due_to_hormone = [ 1.0, 0.5, 0.1 ]
 
 # number of replicates
-nrep = 16
+nrep = 5
 
 # background mortality
 mort_background = 0.002

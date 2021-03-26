@@ -275,9 +275,9 @@ void init_population()
 
         // initialize hormone level and damage
         newInd.hormone = 0.5*(newInd.hstart[0] + newInd.hstart[1]);
-        std::clamp(newInd.hormone, 0.0, zmax);
+        newInd.hormone = std::clamp(newInd.hormone, 0.0, zmax);
         newInd.damage = (r > 0) ? u * newInd.hormone/r : 1.0;
-        std::clamp(newInd.damage, 0.0, 1.0);
+        newInd.damage = std::clamp(newInd.damage, 0.0, 1.0);
 
         // use equilibrium probability for P and NP
         newInd.envt_is_P = uniform(rng_r) < pr_envt_is_P;
@@ -326,41 +326,43 @@ void create_offspring(
     kid.hstart[0] = mat_hstart;
     kid.hstart[1] = pat_hstart;
 
-    // take into account mutation and note that allelic values are on logit
-    // scale (and need not be std::clamped)
     for (int allele_i = 0; allele_i < 2; ++allele_i)
     {
         mutate(
                 kid.clearance[allele_i],
                 mu_clearance,
                 sdmu_clearance);
-        std::clamp(kid.clearance[allele_i], min_clearance, 1.0);
+
+        kid.clearance[allele_i] = std::clamp(
+                kid.clearance[allele_i], min_clearance, 1.0);
 
         mutate(
                 kid.stress_influx[allele_i],
                 mu_stress_influx,
                 sdmu_stress_influx
                 );
-        std::clamp(kid.stress_influx[allele_i], 0.0, 1.0);
+
+        kid.stress_influx[allele_i] = std::clamp(kid.stress_influx[allele_i], 0.0, 1.0);
 
         mutate(
                 kid.influx[allele_i],
                 mu_influx,
                 sdmu_influx);
-        std::clamp(kid.influx[allele_i], 0.0, 1.0);
+        kid.influx[allele_i] = std::clamp(kid.influx[allele_i], 0.0, 1.0);
 
         mutate(
                 kid.hstart[allele_i],
                 mu_hstart,
                 sdmu_hstart);
-        std::clamp(kid.hstart[allele_i], 0.0, 1.0);
+        kid.hstart[allele_i] = std::clamp(kid.hstart[allele_i], 0.0, 1.0);
     }
 
     // set hormone level and damage
     kid.hormone = 0.5*(kid.hstart[0] + kid.hstart[1]);
-    std::clamp(kid.hormone, 0.0, zmax);
+    kid.hormone = std::clamp(kid.hormone, 0.0, zmax);
+
     kid.damage = u * kid.hormone;
-    std::clamp(kid.damage, 0.0, 1.0);
+    kid.damage = std::clamp(kid.damage, 0.0, 1.0);
 
     // let kid start its life in "random" environment
     kid.envt_is_P = uniform(rng_r) < pr_envt_is_P;
@@ -437,7 +439,7 @@ void survive(std::ofstream &datafile)
                 // individual gets predator cue
                 pop[ind_i].hormone += stress_influx;
             }
-            std::clamp(pop[ind_i].hormone, 0.0, zmax);
+            pop[ind_i].hormone = std::clamp(pop[ind_i].hormone, 0.0, zmax);
             // take into account possible predator attack
             if (pop[ind_i].envt_is_P) { // attack only possible if P
                 if (uniform(rng_r) < p_att) { // predator attacks
@@ -457,7 +459,7 @@ void survive(std::ofstream &datafile)
                     } else {
                         // individual survives and gets hormone spike
                         pop[ind_i].hormone += stress_influx;
-                        std::clamp(pop[ind_i].hormone, 0.0, zmax);
+                        pop[ind_i].hormone = std::clamp(pop[ind_i].hormone, 0.0, zmax);
                     }
                 }
             }
@@ -486,10 +488,10 @@ void survive(std::ofstream &datafile)
                 // update damage levels
                 pop[ind_i].damage = (1.0 - r) * pop[ind_i].damage +
                     u * pop[ind_i].hormone;
-                std::clamp(pop[ind_i].damage,0.0,1.0);
+                pop[ind_i].damage = std::clamp(pop[ind_i].damage,0.0,1.0);
                 // damage-dependent fecundity
                 fecundity[ind_i] = 1.0 - sel_width * pow(pop[ind_i].damage - dopt,ad);  //1.0 - pow(pop[ind_i].damage/dmax,ad);
-                std::clamp(fecundity[ind_i],0.0,1.0);
+                fecundity[ind_i] = std::clamp(fecundity[ind_i],0.0,1.0);
                 fecundity_stats[pop[ind_i].envt_is_P] += fecundity[ind_i];
             }
         } else { // dead individual, no fecundity
@@ -530,16 +532,22 @@ void write_data(std::ofstream &DataFile)
 {
     double mean_clearance = 0;
     double ss_clearance = 0;
+
     double mean_stress_influx = 0;
     double ss_stress_influx = 0;
+
     double mean_influx = 0;
     double ss_influx = 0;
+
     double mean_hormone = 0;
     double ss_hormone = 0;
+
     double mean_damage = 0;
     double ss_damage = 0;
 
     double freq_P = (double) numP / (numP + numNP);
+
+    int n_alive = 0;
 
     for (int ind_i = 0; ind_i < Npop; ++ind_i)
     {
@@ -549,11 +557,14 @@ void write_data(std::ofstream &DataFile)
             // clearance
             double clearance = 0.5*(pop[ind_i].clearance[0] +
                               pop[ind_i].clearance[1]);
+
             mean_clearance += clearance;
             ss_clearance += clearance * clearance;
+
             // stress_influx
             double stress_influx = 0.5*(pop[ind_i].stress_influx[0] +
                                    pop[ind_i].stress_influx[1]);
+
             mean_stress_influx += stress_influx;
             ss_stress_influx += stress_influx * stress_influx;
             // influx
@@ -569,20 +580,26 @@ void write_data(std::ofstream &DataFile)
             double damage = pop[ind_i].damage;
             mean_damage += damage;
             ss_damage += damage * damage;
+
+            ++n_alive;
         }
     }
-    mean_clearance /= Npop;
-    mean_stress_influx /= Npop;
-    mean_influx /= Npop;
-    mean_hormone /= Npop;
-    mean_damage /= Npop;
 
-    double sd_clearance = sqrt(ss_clearance / Npop - pow(mean_clearance,2.0));
-    double sd_stress_influx = sqrt(ss_stress_influx / Npop -
+    mean_clearance /= n_alive;
+    mean_stress_influx /= n_alive;
+    mean_influx /= n_alive;
+    mean_hormone /= n_alive;
+    mean_damage /= n_alive;
+
+    double sd_clearance = sqrt(ss_clearance / n_alive - 
+                                        pow(mean_clearance,2.0));
+
+    double sd_stress_influx = sqrt(ss_stress_influx / n_alive -
                                    pow(mean_stress_influx,2.0));
-    double sd_influx = sqrt(ss_influx / Npop - pow(mean_influx,2.0));
-    double sd_hormone = sqrt(ss_hormone / Npop - pow(mean_hormone,2.0));
-    double sd_damage = sqrt(ss_damage / Npop - pow(mean_damage,2.0));
+
+    double sd_influx = sqrt(ss_influx / n_alive - pow(mean_influx,2.0));
+    double sd_hormone = sqrt(ss_hormone / n_alive - pow(mean_hormone,2.0));
+    double sd_damage = sqrt(ss_damage / n_alive - pow(mean_damage,2.0));
 
     DataFile << generation << ";"
         << freq_P << ";"
@@ -608,7 +625,7 @@ void write_data_headers(std::ofstream &DataFile)
 {
     DataFile << "generation;"
         << "freq_P" << ";"
-        << "mean_clearance " << ";"
+        << "mean_clearance" << ";"
         << "mean_stress_influx" << ";"
         << "mean_influx" << ";"
         << "mean_hormone" << ";"
@@ -661,7 +678,7 @@ void write_simple_iter(std::ofstream &IterFile)
         // hormone baseline level
         hormone = (clearance > 0) ? influx/clearance : 1.0;
         hormone = hstart;
-        std::clamp(hormone, 0.0, zmax);
+        hormone = std::clamp(hormone, 0.0, zmax);
         hormone_tplus1 = 0.0;
 
         IterFile << 0 << ";" << ind_i << ";" << hormone << ";" << std::endl;
@@ -674,7 +691,7 @@ void write_simple_iter(std::ofstream &IterFile)
             {
                 hormone_tplus1 += stress_influx;
             }
-            std::clamp(hormone_tplus1, 0.0, zmax);
+            hormone_tplus1 = std::clamp(hormone_tplus1, 0.0, zmax);
             hormone = hormone_tplus1;
 
             IterFile << timestep << ";" << (ind_i + 1) << ";"
